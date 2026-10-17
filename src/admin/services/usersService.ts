@@ -69,15 +69,25 @@ function mapUser(value: unknown, index: number): SavedUser {
       .replace(/^(.+)$/, "@$1"),
     bio: firstText(record, ["bio", "about", "user_bio"]),
     song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
+    createdAt: firstText(record, ["created_at", "createdAt"]),
     images: photos.map(resolvePhotoUrl).filter((url): url is string => Boolean(url)),
   };
 }
 
-export async function getUsers(): Promise<SavedUser[]> {
-  const response = await fetch(ADMIN_USERS_API_URL, {
+interface UsersPage {
+  rows: unknown[];
+  totalPages?: number;
+}
+
+async function getUsersPage(page: number): Promise<UsersPage> {
+  const separator = ADMIN_USERS_API_URL.includes("?") ? "&" : "?";
+  const response = await fetch(
+    `${ADMIN_USERS_API_URL}${separator}page=${page}&limit=100`,
+    {
     method: "GET",
     headers: { Accept: "application/json" },
-  });
+    },
+  );
 
   if (!response.ok) {
     throw new Error(`Unable to load users (HTTP ${response.status}).`);
@@ -87,7 +97,7 @@ export async function getUsers(): Promise<SavedUser[]> {
   let rows: unknown;
 
   if (Array.isArray(payload)) {
-    rows = payload;
+    return { rows: payload };
   } else {
     const body = asRecord(payload);
     rows =
@@ -97,10 +107,30 @@ export async function getUsers(): Promise<SavedUser[]> {
       body.results ??
       asRecord(body.data).users ??
       asRecord(body.data).items;
+    const totalPages = body.total_pages;
+    if (typeof totalPages === "number" && Number.isInteger(totalPages) && totalPages >= 0) {
+      if (!Array.isArray(rows)) {
+        throw new Error("The users API response did not contain a users array.");
+      }
+      return { rows, totalPages };
+    }
   }
 
   if (!Array.isArray(rows)) {
     throw new Error("The users API response did not contain a users array.");
+  }
+
+  return { rows };
+}
+
+export async function getUsers(): Promise<SavedUser[]> {
+  const firstPage = await getUsersPage(1);
+  const rows = [...firstPage.rows];
+  const pageCount = firstPage.totalPages ?? 1;
+
+  for (let page = 2; page <= pageCount; page += 1) {
+    const result = await getUsersPage(page);
+    rows.push(...result.rows);
   }
 
   return rows.map(mapUser);

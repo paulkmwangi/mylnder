@@ -6,6 +6,7 @@ export interface SavedUser {
   instagram: string;
   bio?: string;
   song?: string;
+  createdAt?: string;
   images: string[];
 }
 

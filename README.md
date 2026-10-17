@@ -36,6 +36,10 @@ The admin sidebar links to a Payment Plan page. It reads the current price from 
 
 The backend documentation states that `/api/plan` currently has no authentication guard. The admin UI does not add a client-side credential in place of server authorization; protect plan management on the backend before exposing it publicly.
 
+## Overview analytics
+
+The Overview groups saved users by university and charts new registrations over the selected 7-, 30-, or 90-day period using each user's `created_at` timestamp. User lists are fetched across all API pages so the counts are not limited to the first page. These are registration counts, not active visits or sessions; the current API does not provide time-based service-access analytics.
+
 ## Included
 
 - Sidebar navigation and admin footer
