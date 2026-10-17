@@ -1,0 +1,1 @@
+export async function getAdminSettings() { return Promise.resolve({ communityName: "Myinder Campus Community" }); }
