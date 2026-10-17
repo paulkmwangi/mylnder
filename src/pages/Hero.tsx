@@ -1,1 +1,1 @@
-export default function Hero() { return <section className="rounded-2xl bg-blue-50 p-8"><h1 className="text-2xl font-bold text-myinder-navy">Myinder Campus Community</h1><p className="mt-2 text-myinder-muted">Campus users, connected in one place.</p></section>; }
+export default function Hero() { return <section className="rounded-2xl bg-blue-50 p-8"><h1 className="text-2xl font-bold text-myinder-navy">mylnder Campus Community</h1><p className="mt-2 text-myinder-muted">Campus users, connected in one place.</p></section>; }

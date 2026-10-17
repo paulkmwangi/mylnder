@@ -4,6 +4,8 @@ export interface SavedUser {
   university: string;
   major: string;
   instagram: string;
+  bio?: string;
+  song?: string;
   images: string[];
 }
 

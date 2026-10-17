@@ -9,6 +9,13 @@ export default defineConfig({
         target: "https://myinder-server.onrender.com",
         changeOrigin: true,
         secure: true,
+        configure(proxy) {
+          proxy.on("proxyRes", (response, request) => {
+            if (request.url?.startsWith("/api/images/")) {
+              delete response.headers["cross-origin-resource-policy"];
+            }
+          });
+        },
       },
     },
   },

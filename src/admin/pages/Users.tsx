@@ -18,7 +18,7 @@ export default function Users() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return users.filter((user) => !term || `${user.name} ${user.university} ${user.major} ${user.instagram}`.toLowerCase().includes(term));
+    return users.filter((user) => !term || `${user.name} ${user.university} ${user.major} ${user.instagram} ${user.bio ?? ""} ${user.song ?? ""}`.toLowerCase().includes(term));
   }, [users, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));

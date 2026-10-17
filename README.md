@@ -1,4 +1,4 @@
-# Myinder Admin Dashboard
+# mylnder Admin Dashboard
 
 Responsive React + TypeScript + Tailwind CSS admin dashboard.
 
@@ -19,9 +19,9 @@ The Saved Users page fetches real records from the admin API. For local developm
 VITE_ADMIN_USERS_API_URL=/api/admin/users
 ```
 
-The Vite development server proxies `/api` requests to `https://myinder-server.onrender.com`, avoiding browser CORS restrictions while developing. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and configure the backend to allow the deployed dashboard's origin; the development proxy is not included in production builds. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
+The Vite development server proxies `/api` requests to `https://myinder-server.onrender.com`, avoiding browser CORS restrictions while developing. Image URLs from the API are routed through this proxy in development, which removes the backend's restrictive `Cross-Origin-Resource-Policy: same-origin` header from image redirects. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and configure the backend or a same-origin reverse proxy to allow image embedding (for example, set `Cross-Origin-Resource-Policy: cross-origin` on image responses); the development proxy is not included in production builds. Configure the backend to allow the deployed dashboard's origin for API and image-download requests. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
 
-The API mapper supports common fields including `user_id`/`id`, `name`, `ig_username`, `major`, university/school fields, and photo arrays (`photos`, `images`, `user_photos`, or `photo_urls`). Photo entries may be URL strings or objects containing `url`, `photo_url`, `image_url`, `src`, `path`, or `filename`.
+The API mapper supports common fields including `user_id`/`id`, `name`, `ig_username`, `major`, university/school fields, `bio`, song selections (`song`, `song_option`, or `song_choice`), and photo arrays (`photos`, `images`, `user_photos`, or `photo_urls`). Bio and song are shown in the user details view, included in search and CSV exports, and may be omitted by the API. Photo entries may be URL strings or objects containing `url`, `photo_url`, `image_url`, `src`, `path`, or `filename`.
 
 ## Backend requirements
 

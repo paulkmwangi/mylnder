@@ -3,6 +3,10 @@ import type { SavedUser } from "../types/admin.types";
 const ADMIN_USERS_API_URL =
   import.meta.env.VITE_ADMIN_USERS_API_URL ??
   "https://myinder-server.onrender.com/api/admin/users";
+const ADMIN_API_ORIGIN = new URL(
+  ADMIN_USERS_API_URL,
+  "https://myinder-server.onrender.com",
+).origin;
 
 type ApiRecord = Record<string, unknown>;
 
@@ -25,14 +29,24 @@ function resolvePhotoUrl(value: unknown): string | null {
   ]);
   if (!photo) return null;
 
-  if (/^(https?:|data:|blob:)/i.test(photo)) return photo;
+  if (/^(https?:|data:|blob:)/i.test(photo)) {
+    const photoUrl = new URL(photo);
+    if (import.meta.env.DEV && photoUrl.origin === ADMIN_API_ORIGIN) {
+      return `${photoUrl.pathname}${photoUrl.search}${photoUrl.hash}`;
+    }
+    return photo;
+  }
 
-  const apiOrigin = new URL(ADMIN_USERS_API_URL).origin;
-  if (photo.startsWith("/")) return `${apiOrigin}${photo}`;
-  if (photo.includes("/")) return `${apiOrigin}/${photo}`;
+  if (photo.startsWith("/")) {
+    return import.meta.env.DEV ? photo : `${ADMIN_API_ORIGIN}${photo}`;
+  }
+  if (photo.includes("/")) {
+    return import.meta.env.DEV ? `/${photo}` : `${ADMIN_API_ORIGIN}/${photo}`;
+  }
 
   // The API documents stored images at GET /api/images/:filename.
-  return `${apiOrigin}/api/images/${encodeURIComponent(photo)}`;
+  const imagePath = `/api/images/${encodeURIComponent(photo)}`;
+  return import.meta.env.DEV ? imagePath : `${ADMIN_API_ORIGIN}${imagePath}`;
 }
 
 function mapUser(value: unknown, index: number): SavedUser {
@@ -53,6 +67,8 @@ function mapUser(value: unknown, index: number): SavedUser {
     instagram: firstText(record, ["ig_username", "instagram", "instagram_username", "instagram_handle"], "Not provided")
       .replace(/^@+/, "")
       .replace(/^(.+)$/, "@$1"),
+    bio: firstText(record, ["bio", "about", "user_bio"]),
+    song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
     images: photos.map(resolvePhotoUrl).filter((url): url is string => Boolean(url)),
   };
 }

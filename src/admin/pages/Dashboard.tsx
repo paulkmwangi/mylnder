@@ -8,7 +8,7 @@ export default function Dashboard() {
   const { users, loading } = useUsers();
   if (loading) return <LoadingState/>;
   return <main>
-    <div className="mb-7"><h1 className="text-3xl font-extrabold text-myinder-navy">Overview</h1><p className="mt-1 text-sm text-myinder-muted">Welcome to your Myinder campus community dashboard.</p></div>
+    <div className="mb-7"><h1 className="text-3xl font-extrabold text-myinder-navy">Overview</h1><p className="mt-1 text-sm text-myinder-muted">Welcome to your mylnder campus community dashboard.</p></div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard title="Saved Users" value={users.length} Icon={UsersRound}/>
       <StatCard title="Universities" value={new Set(users.map((user) => user.university)).size} Icon={University}/>

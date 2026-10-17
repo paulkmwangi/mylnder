@@ -11,13 +11,13 @@ export default function AdminLayout() {
 
   const exportUsers = () => {
     const csv = [
-      ["Name", "University", "Major", "Instagram", "Image Count"].join(","),
-      ...users.map((user) => [user.name, user.university, user.major, user.instagram, user.images.length].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      ["Name", "University", "Major", "Instagram", "Bio", "Song", "Image Count"].join(","),
+      ...users.map((user) => [user.name, user.university, user.major, user.instagram, user.bio ?? "", user.song ?? "", user.images.length].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "myinder-users.csv";
+    link.download = "mylnder-users.csv";
     link.click();
     URL.revokeObjectURL(url);
   };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Instagram, University, GraduationCap, X,  LoaderCircle } from "lucide-react";
+import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2 } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
 
@@ -86,6 +86,16 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
           </div>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5 sm:px-8">
+          <div className="mb-6 grid gap-4 sm:grid-cols-2">
+            <section className="rounded-lg bg-blue-50/70 p-4">
+              <h3 className="text-sm font-bold text-myinder-navy">Bio</h3>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-myinder-muted">{user.bio || "No bio provided."}</p>
+            </section>
+            <section className="rounded-lg bg-blue-50/70 p-4">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-myinder-navy"><Music2 size={17} className="text-myinder-blue"/>Song</h3>
+              <p className="mt-2 text-sm text-myinder-muted">{user.song || "No song selected."}</p>
+            </section>
+          </div>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-bold text-myinder-navy">User Photos</h3>
             <button onClick={saveAll} disabled={downloading || user.images.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-myinder-orange px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-orange-600 disabled:opacity-60 sm:text-sm">

@@ -1,1 +1,1 @@
-export async function getAdminSettings() { return Promise.resolve({ communityName: "Myinder Campus Community" }); }
+export async function getAdminSettings() { return Promise.resolve({ communityName: "mylnder Campus Community" }); }
