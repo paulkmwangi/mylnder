@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AdminHeader from "./AdminHeader";
@@ -6,8 +6,13 @@ import { useUsers } from "../hooks/useUsers";
 
 export default function AdminLayout() {
   const [search, setSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { users } = useUsers();
   const location = useLocation();
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const exportUsers = () => {
     const csv = [
@@ -24,9 +29,9 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-[#fbfdff]">
-      <AdminSidebar />
+      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-[272px]">
-        <AdminHeader search={search} onSearch={setSearch} onExport={exportUsers} />
+        <AdminHeader search={search} onSearch={setSearch} onExport={exportUsers} onMenuClick={() => setSidebarOpen(true)} sidebarOpen={sidebarOpen} />
         <div className="px-4 pb-10 pt-5 sm:px-7 lg:px-8">
           <Outlet context={{ search, setSearch, route: location.pathname }} />
         </div>

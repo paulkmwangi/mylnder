@@ -30,6 +30,12 @@ The API mapper supports common fields including `user_id`/`id`, `name`, `ig_user
 - Relative photo paths are resolved against the API host. Bare photo filenames are resolved to `/api/images/:filename`.
 - If the API's response field names differ, update `src/admin/services/usersService.ts` in `mapUser()`.
 
+## Payment plan
+
+The admin sidebar links to a Payment Plan page. It reads the current price from `GET /api/plan` and publishes a changed amount with `POST /api/plan`, preserving the current plan name, currency, and features. The API creates a new current price version; it does not overwrite previous versions or change prices already attached to purchases. Amounts must be positive and have at most two decimal places.
+
+The backend documentation states that `/api/plan` currently has no authentication guard. The admin UI does not add a client-side credential in place of server authorization; protect plan management on the backend before exposing it publicly.
+
 ## Included
 
 - Sidebar navigation and admin footer
