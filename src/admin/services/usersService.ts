@@ -2,7 +2,7 @@ import type { SavedUser } from "../types/admin.types";
 
 const ADMIN_USERS_API_URL =
   import.meta.env.VITE_ADMIN_USERS_API_URL ??
-  "";
+  "https://myinder-server.onrender.com/api/admin/users";
 
 type ApiRecord = Record<string, unknown>;
 

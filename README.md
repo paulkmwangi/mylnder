@@ -13,13 +13,13 @@ Create a production build with `npm run build`.
 
 ## Live users API
 
-The Saved Users page fetches real records from the admin API. The API URL is configured in `.env`:
+The Saved Users page fetches real records from the admin API. For local development, configure `.env` to use the Vite proxy:
 
 ```env
-VITE_ADMIN_USERS_API_URL=https://myinder-server.onrender.com/api/admin/users
+VITE_ADMIN_USERS_API_URL=/api/admin/users
 ```
 
-If you change `.env`, restart the Vite development server. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
+The Vite development server proxies `/api` requests to `https://myinder-server.onrender.com`, avoiding browser CORS restrictions while developing. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and configure the backend to allow the deployed dashboard's origin; the development proxy is not included in production builds. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
 
 The API mapper supports common fields including `user_id`/`id`, `name`, `ig_username`, `major`, university/school fields, and photo arrays (`photos`, `images`, `user_photos`, or `photo_urls`). Photo entries may be URL strings or objects containing `url`, `photo_url`, `image_url`, `src`, `path`, or `filename`.
 

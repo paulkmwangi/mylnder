@@ -11,7 +11,11 @@ export function useUsers() {
     let alive = true;
     getUsers()
       .then((data) => { if (alive) setUsers(data); })
-      .catch(() => { if (alive) setError("Unable to load users."); })
+      .catch((cause: unknown) => {
+        if (alive) {
+          setError(cause instanceof Error ? cause.message : "Unable to load users.");
+        }
+      })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
