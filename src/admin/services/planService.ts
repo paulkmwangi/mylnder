@@ -9,8 +9,7 @@ export interface PaymentPlan {
 }
 
 const USERS_API_URL =
-  import.meta.env.VITE_ADMIN_USERS_API_URL ??
-  "https://myinder-server.onrender.com/api/admin/users";
+  import.meta.env.VITE_ADMIN_USERS_API_URL || "/api/admin/users";
 const API_BASE_URL = USERS_API_URL.replace(/\/admin\/users\/?$/, "").replace(/\/$/, "");
 
 type ApiRecord = Record<string, unknown>;

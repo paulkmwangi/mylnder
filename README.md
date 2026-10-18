@@ -16,17 +16,18 @@ Create a production build with `npm run build`.
 The Saved Users page fetches real records from the admin API. For local development, configure `.env` to use the Vite proxy:
 
 ```env
+VITE_ADMIN_API_ORIGIN=https://your-api-host.example
 VITE_ADMIN_USERS_API_URL=/api/admin/users
 ```
 
-The Vite development server proxies `/api` requests to `https://myinder-server.onrender.com`, avoiding browser CORS restrictions while developing. Image URLs from the API are routed through this proxy in development, which removes the backend's restrictive `Cross-Origin-Resource-Policy: same-origin` header from image redirects. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and configure the backend or a same-origin reverse proxy to allow image embedding (for example, set `Cross-Origin-Resource-Policy: cross-origin` on image responses); the development proxy is not included in production builds. Configure the backend to allow the deployed dashboard's origin for API and image-download requests. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
+The Vite development server proxies `/api` requests to `VITE_ADMIN_API_ORIGIN`, avoiding browser CORS restrictions while developing. Image URLs from the API are routed through this proxy in development, which removes the backend's restrictive `Cross-Origin-Resource-Policy: same-origin` header from image redirects. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and `VITE_ADMIN_API_ORIGIN` to its origin, then configure the backend or a same-origin reverse proxy to allow image embedding (for example, set `Cross-Origin-Resource-Policy: cross-origin` on image responses); the development proxy is not included in production builds. Configure the backend to allow the deployed dashboard's origin for API and image-download requests. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
 
 The API mapper supports common fields including `user_id`/`id`, `name`, `ig_username`, `major`, university/school fields, `bio`, song selections (`song`, `song_option`, or `song_choice`), and photo arrays (`photos`, `images`, `user_photos`, or `photo_urls`). Bio and song are shown in the user details view, included in search and CSV exports, and may be omitted by the API. Photo entries may be URL strings or objects containing `url`, `photo_url`, `image_url`, `src`, `path`, or `filename`.
 
 ## Backend requirements
 
 - The endpoint must be reachable from the browser and allow CORS requests from your frontend origin (for example `http://localhost:5173` or your deployed dashboard domain).
-- The admin endpoint should be protected by your backend's admin authentication. Do not put server secrets or database credentials in a Vite `.env` variable; `VITE_` values are public in the browser bundle.
+- The `VITE_` variables are public configuration and are included in the browser bundle. The admin endpoint should be protected by your backend's admin authentication. Do not put API keys, server secrets, or database credentials in this frontend `.env`; keep secrets on the backend.
 - Relative photo paths are resolved against the API host. Bare photo filenames are resolved to `/api/images/:filename`.
 - If the API's response field names differ, update `src/admin/services/usersService.ts` in `mapUser()`.
 
