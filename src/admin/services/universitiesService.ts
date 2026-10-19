@@ -4,10 +4,8 @@ export interface UniversityRecord {
   customColor?: string;
 }
 
-const USERS_API_URL =
-  import.meta.env.VITE_ADMIN_USERS_API_URL || "/api/admin/users";
-const UNIVERSITIES_API_URL =
-  import.meta.env.VITE_ADMIN_UNIVERSITIES_API_URL ||
+const USERS_API_URL =import.meta.env.VITE_ADMIN_USERS_API_URL;
+const UNIVERSITIES_API_URL =import.meta.env.VITE_ADMIN_UNIVERSITIES_API_URL ||
   USERS_API_URL.replace(/\/users\/?$/, "/Schools");
 
 type ApiRecord = Record<string, unknown>;

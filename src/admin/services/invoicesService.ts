@@ -135,13 +135,44 @@ function mapInvoice(
 }
 
 function getInvoicesEndpoint(): string {
-  if (!API_ORIGIN) {
+  const origin = String(
+    import.meta.env.VITE_ADMIN_API_ORIGIN ?? "",
+  ).trim().replace(/\/+$/, "");
+
+  const configuredPath = String(
+    import.meta.env.VITE_INVOICES_API_URL,
+  ).trim();
+
+  if (!origin) {
     throw new Error(
       "Missing VITE_ADMIN_API_ORIGIN. Set it in your frontend .env file.",
     );
   }
 
-  return `${API_ORIGIN}${INVOICES_API_URL}`;
+  if (!configuredPath) {
+    throw new Error(
+      "Missing VITE_INVOICES_API_URL.",
+    );
+  }
+
+  try {
+    const endpoint = new URL(configuredPath, `${origin}/`);
+
+    if (
+      endpoint.origin !== new URL(origin).origin ||
+      endpoint.protocol !== "https:"
+    ) {
+      throw new Error("The invoices API URL must use your configured HTTPS backend.");
+    }
+
+    return endpoint.toString().replace(/\/+$/, "");
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error("Invalid invoices API URL configuration.");
+  }
 }
 
 async function readResponse(response: Response): Promise<unknown> {
