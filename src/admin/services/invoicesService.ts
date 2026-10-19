@@ -23,12 +23,7 @@ export interface InvoiceListResponse {
   total_pages: number;
 }
 
-const API_ORIGIN = String(
-  import.meta.env.VITE_ADMIN_API_ORIGIN ?? "",
-);
 
-const INVOICES_API_URL =
-  import.meta.env.VITE_INVOICES_API_URL;
 const INVOICE_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
