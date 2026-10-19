@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2 } from "lucide-react";
+import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
 import ColorfulIcon from "./ColorfulIcon";
@@ -7,19 +7,32 @@ import ColorfulIcon from "./ColorfulIcon";
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (previewIndex !== null) setPreviewIndex(null);
+        else onClose();
+      } else if (previewIndex !== null && event.key === "ArrowRight") {
+        setPreviewIndex((index) => index === null ? null : (index + 1) % user.images.length);
+      } else if (previewIndex !== null && event.key === "ArrowLeft") {
+        setPreviewIndex((index) => index === null ? null : (index - 1 + user.images.length) % user.images.length);
+      }
+    };
     document.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
-  }, [user, onClose]);
+  }, [user, onClose, previewIndex]);
 
-  useEffect(() => { setError(""); }, [user?.id]);
+  useEffect(() => {
+    setError("");
+    setPreviewIndex(null);
+  }, [user?.id]);
 
   if (!user) return null;
 
@@ -109,7 +122,19 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
             <div className="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-2 md:grid-cols-3">
               {user.images.map((url, index) => (
                 <article key={`${url}-${index}`} className="group relative aspect-[1.08/1] overflow-hidden rounded-lg bg-blue-50">
-                  <img src={url} alt={`${user.name} photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewIndex(index)}
+                    aria-label={`Preview photo ${index + 1}`}
+                    className="h-full w-full cursor-zoom-in"
+                  >
+                    <img src={url} alt={`${user.name} photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/>
+                    <span className="absolute inset-0 flex items-center justify-center bg-slate-900/0 text-white opacity-0 transition group-hover:bg-slate-900/30 group-hover:opacity-100">
+                      <span className="flex items-center gap-2 rounded-full bg-slate-900/65 px-3 py-2 text-sm font-semibold">
+                        <Eye size={17} /> Preview
+                      </span>
+                    </span>
+                  </button>
                   <button onClick={() => void saveImage(url, index)} aria-label={`Download photo ${index + 1}`} className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-myinder-blue shadow-md transition hover:bg-blue-50"><Download size={20}/></button>
                 </article>
               ))}
@@ -117,6 +142,67 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
           ) : <p className="py-12 text-center text-sm text-slate-500">No images available for this user.</p>}
         </div>
       </section>
+      {previewIndex !== null && user.images[previewIndex] && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 p-3 backdrop-blur-sm sm:p-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreviewIndex(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Photo ${previewIndex + 1} of ${user.images.length}`}
+            className="relative flex h-full max-h-[90vh] w-full max-w-6xl flex-col items-center justify-center"
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewIndex(null)}
+              aria-label="Close image preview"
+              className="absolute right-0 top-0 z-10 rounded-full bg-white/15 p-2.5 text-white transition hover:bg-white/25"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={user.images[previewIndex]}
+              alt={`${user.name} photo ${previewIndex + 1}`}
+              className="max-h-[calc(90vh-5rem)] max-w-full rounded-lg object-contain shadow-2xl"
+            />
+            {user.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setPreviewIndex((previewIndex - 1 + user.images.length) % user.images.length)}
+                  aria-label="Previous photo"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white transition hover:bg-white/25"
+                >
+                  <ChevronLeft size={26} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewIndex((previewIndex + 1) % user.images.length)}
+                  aria-label="Next photo"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white transition hover:bg-white/25"
+                >
+                  <ChevronRight size={26} />
+                </button>
+              </>
+            )}
+            <div className="mt-4 flex items-center gap-4">
+              <p className="text-sm font-medium text-white/85">
+                Photo {previewIndex + 1} of {user.images.length}
+              </p>
+              <button
+                type="button"
+                onClick={() => void saveImage(user.images[previewIndex], previewIndex)}
+                className="inline-flex items-center gap-2 rounded-lg bg-myinder-orange px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                <Download size={18} /> Download image
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
