@@ -42,7 +42,7 @@ async function readPayload(response: Response): Promise<unknown> {
 function mapUniversity(value: unknown): UniversityRecord {
   const record = asRecord(value);
   const id = record.id ?? record.university_id ?? record.uuid;
-  const name = record.name ?? record.university_name ?? record.profile_name;
+  const name = record.profile_name ?? record.name ?? record.university_name;
   const customColor = record.custom_color;
   if (
     (typeof id !== "string" && typeof id !== "number") ||
@@ -81,22 +81,14 @@ export async function getUniversities(): Promise<UniversityRecord[]> {
   return rows.map(mapUniversity);
 }
 
-export async function createUniversity(
-  name: string,
-  profileName: string,
-  customColor: string,
-): Promise<void> {
+export async function createUniversity(profileName: string, customColor: string): Promise<void> {
   const response = await fetch(UNIVERSITIES_API_URL, {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      name,
-      profile_name: profileName,
-      custom_color: customColor,
-    }),
+    body: JSON.stringify({ profile_name: profileName, custom_color: customColor }),
   });
   const payload = await readPayload(response);
   if (!response.ok) {

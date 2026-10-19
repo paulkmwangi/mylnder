@@ -2,7 +2,7 @@ import type { SavedUser } from "../types/admin.types";
 import { readLocalCache, writeLocalCache } from "./localCache";
 
 const ADMIN_USERS_API_URL =
-  import.meta.env.VITE_ADMIN_USERS_API_URL || "/api/admin/users";
+  import.meta.env.VITE_ADMIN_USERS_API_URL;
 const ADMIN_API_ORIGIN =
   import.meta.env.VITE_ADMIN_API_ORIGIN ||
   new URL(ADMIN_USERS_API_URL, window.location.origin).origin;
