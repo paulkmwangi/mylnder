@@ -7,6 +7,7 @@ import LoadingState from "../../components/shared/LoadingState";
 import UserDetailsModal from "../components/UserDetailsModal";
 import Pagination from "../components/Pagination";
 import ColorfulIcon from "../components/ColorfulIcon";
+import ResolvedImage from "../components/ResolvedImage";
 
 type Context = { search: string };
 
@@ -50,7 +51,15 @@ export default function Users() {
                 <p className="mt-2 flex min-w-0 items-center gap-2.5 text-xs text-myinder-muted sm:text-[13px]"><ColorfulIcon Icon={Instagram} tone="pink" size={17} badge={false}/><span className="truncate">{user.instagram}</span></p>
               </div>
               <div className="mt-4 grid grid-cols-4 gap-2">
-                {user.images.slice(0, 3).map((image, index) => <img key={`${image}-${index}`} src={image} alt="" loading="lazy" className="h-[64px] w-full rounded-md object-cover sm:h-[64px]"/> )}
+                {user.images.slice(0, 3).map((image, index) => (
+                  <ResolvedImage
+                    key={`${image}-${index}`}
+                    src={image}
+                    alt=""
+                    className="h-[64px] w-full rounded-md bg-blue-50"
+                    imageClassName="h-full w-full object-cover"
+                  />
+                ))}
                 <div className="flex h-[64px] items-center justify-center rounded-md bg-blue-50 text-xs font-semibold text-myinder-blue">+{Math.max(0, user.images.length - 3)}</div>
               </div>
             </button>

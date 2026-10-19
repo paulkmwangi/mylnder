@@ -3,6 +3,8 @@ import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
 import ColorfulIcon from "./ColorfulIcon";
+import ResolvedImage from "./ResolvedImage";
+import { resolveImageUrl } from "../services/imageService";
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
@@ -39,7 +41,8 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   const saveImage = async (url: string, index: number) => {
     try {
       setError("");
-      const response = await fetch(url);
+      const imageUrl = await resolveImageUrl(url);
+      const response = await fetch(imageUrl);
       if (!response.ok) throw new Error("download failed");
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -64,7 +67,8 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
       const folder = zip.folder(user.name.replace(/[^a-z0-9]/gi, "-") || "user-images");
       if (!folder) throw new Error("Unable to create ZIP");
       await Promise.all(user.images.map(async (url, index) => {
-        const response = await fetch(url);
+        const imageUrl = await resolveImageUrl(url);
+        const response = await fetch(imageUrl);
         if (!response.ok) throw new Error("Image request failed");
         const blob = await response.blob();
         const extension = blob.type.split("/")[1]?.split(";")[0] || "jpg";
@@ -128,7 +132,12 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
                     aria-label={`Preview photo ${index + 1}`}
                     className="h-full w-full cursor-zoom-in"
                   >
-                    <img src={url} alt={`${user.name} photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/>
+                    <ResolvedImage
+                      src={url}
+                      alt={`${user.name} photo ${index + 1}`}
+                      className="h-full w-full"
+                      imageClassName="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
                     <span className="absolute inset-0 flex items-center justify-center bg-slate-900/0 text-white opacity-0 transition group-hover:bg-slate-900/30 group-hover:opacity-100">
                       <span className="flex items-center gap-2 rounded-full bg-slate-900/65 px-3 py-2 text-sm font-semibold">
                         <Eye size={17} /> Preview
@@ -163,10 +172,11 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
             >
               <X size={24} />
             </button>
-            <img
+            <ResolvedImage
               src={user.images[previewIndex]}
               alt={`${user.name} photo ${previewIndex + 1}`}
-              className="max-h-[calc(90vh-5rem)] max-w-full rounded-lg object-contain shadow-2xl"
+              className="min-h-[40vh] max-h-[calc(90vh-5rem)] w-full max-w-full rounded-lg"
+              imageClassName="max-h-[calc(90vh-5rem)] max-w-full rounded-lg object-contain shadow-2xl"
             />
             {user.images.length > 1 && (
               <>

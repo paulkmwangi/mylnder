@@ -21,7 +21,7 @@ function firstText(record: ApiRecord, keys: string[], fallback = ""): string {
   return fallback;
 }
 
-function resolvePhotoUrl(value: unknown): string | null {
+function getPhotoUrl(value: unknown): string | null {
   const photo = typeof value === "string" ? value : firstText(asRecord(value), [
     "url", "photo_url", "image_url", "src", "path", "filename", "file_name",
   ]);
@@ -68,7 +68,7 @@ function mapUser(value: unknown, index: number): SavedUser {
     bio: firstText(record, ["bio", "about", "user_bio"]),
     song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
     createdAt: firstText(record, ["created_at", "createdAt"]),
-    images: photos.map(resolvePhotoUrl).filter((url): url is string => Boolean(url)),
+    images: photos.map(getPhotoUrl).filter((url): url is string => Boolean(url)),
   };
 }
 
@@ -121,7 +121,7 @@ async function getUsersPage(page: number): Promise<UsersPage> {
   return { rows };
 }
 
-export async function getUsers(): Promise<SavedUser[]> {
+async function loadUsers(): Promise<SavedUser[]> {
   const firstPage = await getUsersPage(1);
   const rows = [...firstPage.rows];
   const pageCount = firstPage.totalPages ?? 1;
@@ -132,6 +132,24 @@ export async function getUsers(): Promise<SavedUser[]> {
   }
 
   return rows.map(mapUser);
+}
+
+let usersRequest: Promise<SavedUser[]> | null = null;
+
+export function getUsers(): Promise<SavedUser[]> {
+  if (usersRequest) return usersRequest;
+
+  const request = loadUsers();
+  usersRequest = request;
+  void request.then(
+    () => {
+      if (usersRequest === request) usersRequest = null;
+    },
+    () => {
+      if (usersRequest === request) usersRequest = null;
+    },
+  );
+  return request;
 }
 
 export async function getUserById(id: string): Promise<SavedUser | undefined> {
