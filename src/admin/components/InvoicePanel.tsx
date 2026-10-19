@@ -1,0 +1,86 @@
+import { useEffect, useState } from "react";
+import { CheckCircle2, Clock3, FileText, LoaderCircle } from "lucide-react";
+import { getInvoice, type UserInvoice } from "../services/invoicesService";
+
+export default function InvoicePanel({ invoiceNumber }: { invoiceNumber?: string }) {
+  const [invoice, setInvoice] = useState<UserInvoice | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!invoiceNumber) {
+      setInvoice(null);
+      setLoading(false);
+      setError("");
+      return;
+    }
+
+    let active = true;
+    setInvoice(null);
+    setError("");
+    setLoading(true);
+    getInvoice(invoiceNumber)
+      .then((result) => {
+        if (active) setInvoice(result);
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(cause instanceof Error ? cause.message : "Unable to load invoice.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [invoiceNumber]);
+
+  return (
+    <section className="mb-6 rounded-lg border border-blue-100 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-myinder-navy">
+            <FileText size={18} className="text-myinder-blue" />
+            Payment invoice
+          </h3>
+          <p className="mt-1 text-xs text-myinder-muted">
+            {invoiceNumber ? `Invoice ${invoiceNumber}` : "No invoice reference is available for this user."}
+          </p>
+        </div>
+        {invoice && (
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+            invoice.status === "successful"
+              ? "bg-green-50 text-green-700"
+              : "bg-amber-50 text-amber-700"
+          }`}>
+            {invoice.status === "successful" ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}
+            {invoice.status === "successful" ? "Successful" : "Pending"}
+          </span>
+        )}
+        {loading && <LoaderCircle size={17} aria-label="Loading invoice" className="animate-spin text-myinder-blue" />}
+      </div>
+
+      {invoice && (
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 border-t border-blue-50 pt-3 text-sm">
+          {invoice.amountMinor !== undefined && invoice.currency && (
+            <p className="text-myinder-muted">
+              Amount: <span className="font-semibold text-myinder-navy">
+                {new Intl.NumberFormat(undefined, { style: "currency", currency: invoice.currency })
+                  .format(invoice.amountMinor / 100)}
+              </span>
+            </p>
+          )}
+          {invoice.paidAt && (
+            <p className="text-myinder-muted">
+              Paid: <span className="font-medium text-myinder-navy">
+                {new Date(invoice.paidAt).toLocaleString()}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+    </section>
+  );
+}

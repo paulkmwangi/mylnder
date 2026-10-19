@@ -30,6 +30,13 @@ The API mapper supports common fields including `user_id`/`id`, `name`, `ig_user
 - The `VITE_` variables are public configuration and are included in the browser bundle. The admin endpoint should be protected by your backend's admin authentication. Do not put API keys, server secrets, or database credentials in this frontend `.env`; keep secrets on the backend.
 - Relative photo paths are resolved against the API host. Bare photo filenames are resolved through `GET /api/images/:filename`, which must return JSON with an `imageUrl` signed storage URL.
 - If the API's response field names differ, update `src/admin/services/usersService.ts` in `mapUser()`.
+- User records are cached in browser `localStorage` for five minutes; invoice lookups are cached for two minutes. This reduces repeat API requests, but cached admin profile and invoice data remains in that browser until the entries expire or site storage is cleared. Do not use this dashboard on a shared or untrusted browser.
+
+## User invoices
+
+The user details modal looks up the invoice number included on each user record with `GET /api/admin/invoices/:invoiceNumber`. It displays the invoice/payment status as Successful for paid/completed payments and Pending otherwise. The invoice response may include `amount_minor`, `currency`, `paid_at`, and a nested `payment` object. The lookup result is cached in local storage for two minutes.
+
+The admin Invoices tab uses those invoice numbers from the loaded user records and looks up each invoice through the same detail endpoint, with up to five requests in flight. It supports invoice/user search and status filtering. The API currently documents invoice-by-number lookup, not a bulk invoice-list endpoint, so invoices without a reference on a user record will not appear. Use Refresh invoices to bypass cached invoice details.
 
 ## Payment plan
 

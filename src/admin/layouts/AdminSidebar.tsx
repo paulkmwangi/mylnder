@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useEffect } from "react";
-import { Home, UsersRound, ChevronRight, CircleUserRound, X, CreditCard, University } from "lucide-react";
+import { Home, UsersRound, ChevronRight, CircleUserRound, X, CreditCard, University, ReceiptText } from "lucide-react";
 import Logo from "../../components/shared/Logo";
 import ColorfulIcon from "../components/ColorfulIcon";
 
@@ -8,6 +8,7 @@ const links = [
   { label: "Overview", href: "/admin/dashboard", Icon: Home, tone: "blue" as const },
   { label: "Users", href: "/admin/users", Icon: UsersRound, tone: "purple" as const },
   { label: "Universities", href: "/admin/universities", Icon: University, tone: "orange" as const },
+  { label: "Invoices", href: "/admin/invoices", Icon: ReceiptText, tone: "green" as const },
   { label: "Payment plan", href: "/admin/plan", Icon: CreditCard, tone: "green" as const },
 ];
 

@@ -6,9 +6,12 @@ import { useUsers } from "../hooks/useUsers";
 
 export default function AdminLayout() {
   const [search, setSearch] = useState("");
+  const [university, setUniversity] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { users } = useUsers();
   const location = useLocation();
+  const universities = [...new Set(users.map((user) => user.university).filter((name) => name.trim()))]
+    .sort((left, right) => left.localeCompare(right));
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -31,9 +34,19 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-[#fbfdff]">
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-[272px]">
-        <AdminHeader search={search} onSearch={setSearch} onExport={exportUsers} onMenuClick={() => setSidebarOpen(true)} sidebarOpen={sidebarOpen} />
+        <AdminHeader
+          search={search}
+          onSearch={setSearch}
+          university={university}
+          universities={universities}
+          onUniversityChange={setUniversity}
+          showUniversityFilter={location.pathname === "/admin/users"}
+          onExport={exportUsers}
+          onMenuClick={() => setSidebarOpen(true)}
+          sidebarOpen={sidebarOpen}
+        />
         <div className="px-4 pb-10 pt-5 sm:px-7 lg:px-8">
-          <Outlet context={{ search, setSearch, route: location.pathname }} />
+          <Outlet context={{ search, university, setSearch, setUniversity, route: location.pathname }} />
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import type { SavedUser } from "../types/admin.types";
 import ColorfulIcon from "./ColorfulIcon";
 import ResolvedImage from "./ResolvedImage";
 import { resolveImageUrl } from "../services/imageService";
+import InvoicePanel from "./InvoicePanel";
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
@@ -114,6 +115,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
               <p className="mt-2 text-sm text-myinder-muted">{user.song || "No song selected."}</p>
             </section>
           </div>
+          <InvoicePanel invoiceNumber={user.invoiceNumber} />
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-bold text-myinder-navy">User Photos</h3>
             <button onClick={saveAll} disabled={downloading || user.images.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-myinder-orange px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-orange-600 disabled:opacity-60 sm:text-sm">

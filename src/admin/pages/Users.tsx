@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { University, GraduationCap, Instagram } from "lucide-react";
 import type { SavedUser } from "../types/admin.types";
@@ -9,19 +9,27 @@ import Pagination from "../components/Pagination";
 import ColorfulIcon from "../components/ColorfulIcon";
 import ResolvedImage from "../components/ResolvedImage";
 
-type Context = { search: string };
+type Context = { search: string; university: string };
 
 export default function Users() {
-  const { search } = useOutletContext<Context>();
+  const { search, university } = useOutletContext<Context>();
   const { users, loading, error } = useUsers();
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<SavedUser | null>(null);
   const pageSize = 12;
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, university]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return users.filter((user) => !term || `${user.name} ${user.university} ${user.major} ${user.instagram} ${user.bio ?? ""} ${user.song ?? ""}`.toLowerCase().includes(term));
-  }, [users, search]);
+    return users.filter((user) => {
+      const matchesSearch = !term || `${user.name} ${user.university} ${user.major} ${user.instagram} ${user.bio ?? ""} ${user.song ?? ""} ${user.invoiceNumber ?? ""}`.toLowerCase().includes(term);
+      const matchesUniversity = !university || user.university === university;
+      return matchesSearch && matchesUniversity;
+    });
+  }, [users, search, university]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);

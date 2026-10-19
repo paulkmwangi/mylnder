@@ -1,10 +1,13 @@
 import type { SavedUser } from "../types/admin.types";
+import { readLocalCache, writeLocalCache } from "./localCache";
 
 const ADMIN_USERS_API_URL =
   import.meta.env.VITE_ADMIN_USERS_API_URL || "/api/admin/users";
 const ADMIN_API_ORIGIN =
   import.meta.env.VITE_ADMIN_API_ORIGIN ||
   new URL(ADMIN_USERS_API_URL, window.location.origin).origin;
+const USERS_CACHE_KEY = "mylnder-admin-users-v1";
+const USERS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
 
@@ -50,6 +53,8 @@ function getPhotoUrl(value: unknown): string | null {
 function mapUser(value: unknown, index: number): SavedUser {
   const record = asRecord(value);
   const school = asRecord(record.school ?? record.university);
+  const invoice = asRecord(record.invoice);
+  const payment = asRecord(record.payment);
   const rawPhotos =
     record.photos ?? record.images ?? record.user_photos ?? record.photo_urls ?? [];
   const photos = Array.isArray(rawPhotos) ? rawPhotos : [];
@@ -68,8 +73,27 @@ function mapUser(value: unknown, index: number): SavedUser {
     bio: firstText(record, ["bio", "about", "user_bio"]),
     song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
     createdAt: firstText(record, ["created_at", "createdAt"]),
+    invoiceNumber:
+      firstText(record, ["invoice_number", "invoiceNumber"]) ||
+      firstText(invoice, ["invoice_number", "invoiceNumber"]) ||
+      firstText(payment, ["invoice_number", "invoiceNumber"]) ||
+      undefined,
     images: photos.map(getPhotoUrl).filter((url): url is string => Boolean(url)),
   };
+}
+
+function isSavedUserList(value: unknown): value is SavedUser[] {
+  return Array.isArray(value) && value.every((item) =>
+    item !== null &&
+    typeof item === "object" &&
+    typeof item.id === "string" &&
+    typeof item.name === "string" &&
+    typeof item.university === "string" &&
+    typeof item.major === "string" &&
+    typeof item.instagram === "string" &&
+    Array.isArray(item.images) &&
+    item.images.every((image: unknown) => typeof image === "string"),
+  );
 }
 
 interface UsersPage {
@@ -137,9 +161,14 @@ async function loadUsers(): Promise<SavedUser[]> {
 let usersRequest: Promise<SavedUser[]> | null = null;
 
 export function getUsers(): Promise<SavedUser[]> {
+  const cachedUsers = readLocalCache(USERS_CACHE_KEY, isSavedUserList);
+  if (cachedUsers) return Promise.resolve(cachedUsers);
   if (usersRequest) return usersRequest;
 
-  const request = loadUsers();
+  const request = loadUsers().then((users) => {
+    writeLocalCache(USERS_CACHE_KEY, users, USERS_CACHE_TTL_MS);
+    return users;
+  });
   usersRequest = request;
   void request.then(
     () => {

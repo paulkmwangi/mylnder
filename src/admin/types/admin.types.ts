@@ -7,6 +7,7 @@ export interface SavedUser {
   bio?: string;
   song?: string;
   createdAt?: string;
+  invoiceNumber?: string;
   images: string[];
 }
 
