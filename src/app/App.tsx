@@ -4,6 +4,7 @@ import Dashboard from "../admin/pages/Dashboard";
 import Users from "../admin/pages/Users";
 import UserDetails from "../admin/pages/UserDetails";
 import PaymentPlan from "../admin/pages/PaymentPlan";
+import Universities from "../admin/pages/Universities";
 import NotFound from "../admin/pages/NotFound";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/users/:userId" element={<UserDetails />} />
+        <Route path="/admin/universities" element={<Universities />} />
         <Route path="/admin/plan" element={<PaymentPlan />} />
         <Route path="*" element={<NotFound />} />
       </Route>

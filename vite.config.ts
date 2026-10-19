@@ -10,9 +10,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    image: {
-      domains: ["*.s3.amazonaws.com", "*.s3.*.amazonaws.com"],
+    images: {
+  remotePatterns: [
+    {
+      protocol: "https",
+      hostname: "*.neon.tech",
     },
+  ],
+},
     server: {
       proxy: {
         "/api": {

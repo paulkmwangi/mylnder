@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { UsersRound, Image, GraduationCap, University, CalendarDays } from "lucide-react";
 import StatCard from "../components/StatCard";
+import ColorfulIcon from "../components/ColorfulIcon";
 import DataTable from "../components/DataTable";
 import { useUsers } from "../hooks/useUsers";
 import LoadingState from "../../components/shared/LoadingState";
@@ -101,10 +102,10 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-myinder-muted">Welcome to your mylnder campus community dashboard.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Saved Users" value={users.length} Icon={UsersRound} />
-        <StatCard title="Universities" value={universityCount} Icon={University} />
-        <StatCard title="Study Areas" value={new Set(users.map((user) => user.major)).size} Icon={GraduationCap} />
-        <StatCard title="Uploaded Images" value={users.reduce((sum, user) => sum + user.images.length, 0)} Icon={Image} />
+        <StatCard title="Saved Users" value={users.length} Icon={UsersRound} tone="blue" />
+        <StatCard title="Universities" value={universityCount} Icon={University} tone="orange" />
+        <StatCard title="Study Areas" value={new Set(users.map((user) => user.major)).size} Icon={GraduationCap} tone="purple" />
+        <StatCard title="Uploaded Images" value={users.reduce((sum, user) => sum + user.images.length, 0)} Icon={Image} tone="green" />
       </div>
 
       <section className="mt-8 grid gap-5 xl:grid-cols-2">
@@ -160,7 +161,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mb-5 flex items-end gap-2">
-            <CalendarDays size={18} className="mb-1 text-myinder-blue" />
+            <ColorfulIcon Icon={CalendarDays} tone="sky" size={18} badge={false} className="mb-1" />
             <p className="text-3xl font-bold leading-none tabular-nums text-myinder-navy">{registeredInPeriod}</p>
             <p className="text-sm text-myinder-muted">registered in {periodDays} days</p>
           </div>

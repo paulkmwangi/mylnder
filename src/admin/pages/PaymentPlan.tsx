@@ -5,6 +5,7 @@ import Input from "../../components/ui/Input";
 import LoadingState from "../../components/shared/LoadingState";
 import { createPlanVersion, getCurrentPlan } from "../services/planService";
 import type { PaymentPlan } from "../services/planService";
+import ColorfulIcon from "../components/ColorfulIcon";
 
 const MAX_PLAN_AMOUNT = 99_999_999.99;
 
@@ -115,9 +116,7 @@ export default function PaymentPlan() {
       <section className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-blue-50 pb-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-myinder-orange">
-              <CreditCard size={25} />
-            </div>
+            <ColorfulIcon Icon={CreditCard} tone="orange" size={25} className="h-12 w-12" />
             <div>
               <h2 className="text-lg font-bold text-myinder-navy">{plan.name}</h2>
               <p className="mt-1 text-sm text-myinder-muted">Current price</p>
@@ -138,7 +137,7 @@ export default function PaymentPlan() {
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-sm text-myinder-muted">
-                  <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-green-600" />
+                  <ColorfulIcon Icon={CheckCircle2} tone="green" size={17} badge={false} className="mt-0.5" />
                   {feature}
                 </li>
               ))}

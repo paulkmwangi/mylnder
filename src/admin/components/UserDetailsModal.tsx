@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2 } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
+import ColorfulIcon from "./ColorfulIcon";
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
@@ -77,12 +78,12 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
       <section role="dialog" aria-modal="true" aria-labelledby="modal-user-name" className="relative flex max-h-[88vh] w-full max-w-[805px] flex-col overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl">
         <button onClick={onClose} aria-label="Close user details" className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-myinder-blue transition hover:bg-blue-50"><X size={24}/></button>
         <div className="flex shrink-0 items-center gap-5 border-b border-blue-100 px-6 py-7 pr-14 sm:px-8">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-blue-100 text-myinder-blue"><University size={40}/></div>
+          <ColorfulIcon Icon={University} tone="orange" size={40} className="h-20 w-20 rounded-full" />
           <div className="min-w-0">
             <h2 id="modal-user-name" className="text-xl font-extrabold text-myinder-navy sm:text-2xl">{user.name}</h2>
-            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><University size={20} className="shrink-0 text-myinder-blue"/>{user.university}</p>
-            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><GraduationCap size={21} className="shrink-0 text-myinder-blue"/>{user.major}</p>
-            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><Instagram size={21} className="shrink-0 text-pink-500"/>{user.instagram}</p>
+            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><ColorfulIcon Icon={University} tone="orange" size={20} badge={false}/>{user.university}</p>
+            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><ColorfulIcon Icon={GraduationCap} tone="purple" size={21} badge={false}/>{user.major}</p>
+            <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><ColorfulIcon Icon={Instagram} tone="pink" size={21} badge={false}/>{user.instagram}</p>
           </div>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5 sm:px-8">
@@ -92,7 +93,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
               <p className="mt-2 whitespace-pre-wrap text-sm text-myinder-muted">{user.bio || "No bio provided."}</p>
             </section>
             <section className="rounded-lg bg-blue-50/70 p-4">
-              <h3 className="flex items-center gap-2 text-sm font-bold text-myinder-navy"><Music2 size={17} className="text-myinder-blue"/>Song</h3>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-myinder-navy"><ColorfulIcon Icon={Music2} tone="sky" size={17} badge={false}/>Song</h3>
               <p className="mt-2 text-sm text-myinder-muted">{user.song || "No song selected."}</p>
             </section>
           </div>
