@@ -251,7 +251,8 @@ export function getInvoice(
  * GET /api/admin/invoices?page=1&limit=20
  */
 export async function getAllInvoices(
-page = 1, limit = 20, p0: { refresh: boolean; },
+  page = 1,
+  limit = 20,
 ): Promise<InvoiceListResponse> {
   if (!Number.isInteger(page) || page < 1) {
     throw new Error("Page must be a positive integer.");

@@ -131,9 +131,7 @@ export default function Invoices() {
           setLoading(true);
         }
 
-        const result = await getAllInvoices(1, 100, {
-          refresh,
-        });
+       const result = await getAllInvoices(1, 100);
 
         const invoices = result.items ?? [];
 
