@@ -108,11 +108,7 @@ function formatDate(date?: string): string {
   }).format(parsedDate);
 }
 
-function getInvoiceNumber(
-  invoice: UserInvoice & { id?: string },
-): string {
-  return invoice.invoiceNumber || invoice.id || "Unknown invoice";
-}
+
 
 export default function Invoices() {
   const [rows, setRows] = useState<InvoiceRow[]>([]);
