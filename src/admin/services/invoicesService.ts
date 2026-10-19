@@ -23,19 +23,22 @@ export interface InvoiceListResponse {
   total_pages: number;
 }
 
-
 const INVOICE_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): ApiRecord {
-  return value && typeof value === "object" && !Array.isArray(value)
+  return value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
     ? (value as ApiRecord)
     : {};
 }
 
 function isUserInvoice(value: unknown): value is UserInvoice {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== "object") {
+    return false;
+  }
 
   const invoice = value as ApiRecord;
 
@@ -132,10 +135,13 @@ function mapInvoice(
 function getInvoicesEndpoint(): string {
   const origin = String(
     import.meta.env.VITE_ADMIN_API_ORIGIN ?? "",
-  ).trim().replace(/\/+$/, "");
+  )
+    .trim()
+    .replace(/\/+$/, "");
 
   const configuredPath = String(
-    import.meta.env.VITE_INVOICES_API_URL,
+    import.meta.env.VITE_INVOICES_API_URL ??
+      "/api/admin/invoices",
   ).trim();
 
   if (!origin) {
@@ -145,23 +151,26 @@ function getInvoicesEndpoint(): string {
   }
 
   if (!configuredPath) {
-    throw new Error(
-      "Missing VITE_INVOICES_API_URL.",
-    );
+    throw new Error("Missing VITE_INVOICES_API_URL.");
   }
 
   try {
+    const baseUrl = new URL(origin);
+
+    if (baseUrl.protocol !== "https:") {
+      throw new Error("The backend API must use HTTPS.");
+    }
+
     const endpoint = new URL(configuredPath, `${origin}/`);
 
-    if (
-      endpoint.origin !== new URL(origin).origin ||
-      endpoint.protocol !== "https:"
-    ) {
-      throw new Error("The invoices API URL must use your configured HTTPS backend.");
+    if (endpoint.origin !== baseUrl.origin) {
+      throw new Error(
+        "The invoices API URL must use the configured backend origin.",
+      );
     }
 
     return endpoint.toString().replace(/\/+$/, "");
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof Error) {
       throw error;
     }
@@ -170,10 +179,14 @@ function getInvoicesEndpoint(): string {
   }
 }
 
-async function readResponse(response: Response): Promise<unknown> {
+async function readResponse(
+  response: Response,
+): Promise<unknown> {
   const text = await response.text();
 
-  if (!text) return {};
+  if (!text) {
+    return {};
+  }
 
   try {
     return JSON.parse(text) as unknown;
@@ -193,7 +206,10 @@ function getErrorMessage(
     : `Unable to load invoices (HTTP ${status}).`;
 }
 
-const pendingRequests = new Map<string, Promise<UserInvoice>>();
+const pendingRequests = new Map<
+  string,
+  Promise<UserInvoice>
+>();
 
 /**
  * Fetch one invoice by invoice number.
@@ -205,7 +221,9 @@ export function getInvoice(
   const normalizedInvoiceNumber = invoiceNumber.trim().toUpperCase();
 
   if (!normalizedInvoiceNumber) {
-    return Promise.reject(new Error("Invoice number is required."));
+    return Promise.reject(
+      new Error("Invoice number is required."),
+    );
   }
 
   const cacheKey =
@@ -218,20 +236,29 @@ export function getInvoice(
       console.warn("Unable to clear invoice cache.");
     }
   } else {
-    const cachedInvoice = readLocalCache(cacheKey, isUserInvoice);
+    const cachedInvoice = readLocalCache(
+      cacheKey,
+      isUserInvoice,
+    );
 
     if (cachedInvoice) {
       return Promise.resolve(cachedInvoice);
     }
   }
 
-  const existingRequest = pendingRequests.get(normalizedInvoiceNumber);
+  const existingRequest = pendingRequests.get(
+    normalizedInvoiceNumber,
+  );
 
-  if (existingRequest) return existingRequest;
+  if (existingRequest) {
+    return existingRequest;
+  }
 
   const request = (async (): Promise<UserInvoice> => {
     const response = await fetch(
-      `${getInvoicesEndpoint()}/${encodeURIComponent(normalizedInvoiceNumber)}`,
+      `${getInvoicesEndpoint()}/${encodeURIComponent(
+        normalizedInvoiceNumber,
+      )}`,
       {
         method: "GET",
         headers: {
@@ -243,12 +270,21 @@ export function getInvoice(
     const payload = await readResponse(response);
 
     if (!response.ok) {
-      throw new Error(getErrorMessage(payload, response.status));
+      throw new Error(
+        getErrorMessage(payload, response.status),
+      );
     }
 
-    const invoice = mapInvoice(payload, normalizedInvoiceNumber);
+    const invoice = mapInvoice(
+      payload,
+      normalizedInvoiceNumber,
+    );
 
-    writeLocalCache(cacheKey, invoice, INVOICE_CACHE_TTL_MS);
+    writeLocalCache(
+      cacheKey,
+      invoice,
+      INVOICE_CACHE_TTL_MS,
+    );
 
     return invoice;
   })();
@@ -257,12 +293,16 @@ export function getInvoice(
 
   void request.then(
     () => {
-      if (pendingRequests.get(normalizedInvoiceNumber) === request) {
+      if (
+        pendingRequests.get(normalizedInvoiceNumber) === request
+      ) {
         pendingRequests.delete(normalizedInvoiceNumber);
       }
     },
     () => {
-      if (pendingRequests.get(normalizedInvoiceNumber) === request) {
+      if (
+        pendingRequests.get(normalizedInvoiceNumber) === request
+      ) {
         pendingRequests.delete(normalizedInvoiceNumber);
       }
     },
@@ -283,7 +323,11 @@ export async function getAllInvoices(
     throw new Error("Page must be a positive integer.");
   }
 
-  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100
+  ) {
     throw new Error("Limit must be between 1 and 100.");
   }
 
@@ -302,10 +346,11 @@ export async function getAllInvoices(
   const payload = await readResponse(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, response.status));
+    throw new Error(
+      getErrorMessage(payload, response.status),
+    );
   }
 
-  // Support both a paginated response and a plain array.
   const data = asRecord(payload);
 
   const records = Array.isArray(payload)
@@ -333,7 +378,9 @@ export async function getAllInvoices(
 
   const totalPages = Number(
     data.total_pages ??
-      (total === 0 ? 0 : Math.ceil(total / responseLimit)),
+      (total === 0
+        ? 0
+        : Math.ceil(total / responseLimit)),
   );
 
   return {

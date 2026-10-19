@@ -46,6 +46,7 @@ export default function Universities() {
     event.preventDefault();
     const universityName = name.trim();
     const universityProfileName = profileName.trim();
+    const universityCustomColor = customColor.trim();
     if (!universityName) {
       setError("Enter a university name.");
       return;
@@ -62,7 +63,7 @@ export default function Universities() {
       setError("The university profile name must be 100 characters or fewer.");
       return;
     }
-    if (!/^#[0-9a-fA-F]{6}$/.test(customColor)) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(universityCustomColor)) {
       setError("Choose a valid six-digit hex color.");
       return;
     }
@@ -75,9 +76,10 @@ export default function Universities() {
     setError("");
     setSuccess("");
     try {
-      await createUniversity(universityName, universityProfileName, customColor);
+      await createUniversity(universityName, universityProfileName);
       setName("");
       setProfileName("");
+      setCustomColor("");
       setSuccess(`${universityName} was added.`);
       await loadUniversities();
     } catch (cause: unknown) {
