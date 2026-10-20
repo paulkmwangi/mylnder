@@ -46,3 +46,18 @@ export function writeLocalCache<T>(key: string, value: T, ttlMs: number): void {
     console.warn("Unable to write local cache", { key });
   }
 }
+
+export function clearAdminCaches(): void {
+  try {
+    const keys = Array.from({ length: localStorage.length }, (_, index) =>
+      localStorage.key(index),
+    ).filter(
+      (key): key is string =>
+        key === "mylnder-admin-users-v1" ||
+        (key !== null && key.startsWith("mylnder-admin-invoice-v1-")),
+    );
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    console.warn("Unable to clear admin data cache.");
+  }
+}

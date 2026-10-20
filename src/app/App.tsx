@@ -7,20 +7,29 @@ import PaymentPlan from "../admin/pages/PaymentPlan";
 import Universities from "../admin/pages/Universities";
 import Invoices from "../admin/pages/Invoices";
 import NotFound from "../admin/pages/NotFound";
+import AdminLogin from "../admin/pages/AdminLogin";
+import AdminSignup from "../admin/pages/AdminSignup";
+import Admins from "../admin/pages/Admins";
+import RequireAdmin from "../admin/components/RequireAdmin";
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<AdminLayout />}>
-        <Route path="/" element={<Navigate to="/admin/users" replace />} />
-        <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/users" element={<Users />} />
-        <Route path="/admin/users/:userId" element={<UserDetails />} />
-        <Route path="/admin/universities" element={<Universities />} />
-        <Route path="/admin/invoices" element={<Invoices />} />
-        <Route path="/admin/plan" element={<PaymentPlan />} />
-        <Route path="*" element={<NotFound />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/signup" element={<AdminSignup />} />
+      <Route element={<RequireAdmin />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/" element={<Navigate to="/admin/users" replace />} />
+          <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/users/:userId" element={<UserDetails />} />
+          <Route path="/admin/universities" element={<Universities />} />
+          <Route path="/admin/invoices" element={<Invoices />} />
+          <Route path="/admin/plan" element={<PaymentPlan />} />
+          <Route path="/admin/admins" element={<Admins />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Route>
     </Routes>
   );

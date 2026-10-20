@@ -1,3 +1,5 @@
+import { adminApiFetch } from "./adminApiFetch";
+
 export interface PaymentPlan {
   id: string;
   name: string;
@@ -69,7 +71,7 @@ function mapPlan(value: unknown): PaymentPlan {
 }
 
 async function requestPlan(url: string, init?: RequestInit): Promise<PaymentPlan> {
-  const response = await fetch(url, {
+  const response = await adminApiFetch(url, {
     ...init,
     headers: {
       Accept: "application/json",

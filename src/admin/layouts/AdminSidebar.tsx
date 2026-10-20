@@ -1,8 +1,9 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { Home, UsersRound, ChevronRight, CircleUserRound, X, CreditCard, University, ReceiptText } from "lucide-react";
+import { Home, UsersRound, CircleUserRound, X, CreditCard, University, ReceiptText, UserPlus, LogOut } from "lucide-react";
 import Logo from "../../components/shared/Logo";
 import ColorfulIcon from "../components/ColorfulIcon";
+import { useAdminAuthStore } from "../stores/adminAuthStore";
 
 const links = [
   { label: "Overview", href: "/admin/dashboard", Icon: Home, tone: "blue" as const },
@@ -10,11 +11,22 @@ const links = [
   { label: "Universities", href: "/admin/universities", Icon: University, tone: "orange" as const },
   { label: "Invoices", href: "/admin/invoices", Icon: ReceiptText, tone: "green" as const },
   { label: "Payment plan", href: "/admin/plan", Icon: CreditCard, tone: "green" as const },
+  { label: "Admins", href: "/admin/admins", Icon: UserPlus, tone: "purple" as const },
 ];
 
 type Props = { open: boolean; onClose: () => void };
 
 export default function AdminSidebar({ open, onClose }: Props) {
+  const admin = useAdminAuthStore((state) => state.admin);
+  const signOut = useAdminAuthStore((state) => state.signOut);
+  const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    signOut();
+    onClose();
+    navigate("/admin/login", { replace: true });
+  };
+
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -51,8 +63,13 @@ export default function AdminSidebar({ open, onClose }: Props) {
         <div className="mt-auto border-t border-blue-100 px-3 pt-4">
           <div className="flex items-center gap-3">
             <ColorfulIcon Icon={CircleUserRound} tone="blue" size={34} className="h-12 w-12 rounded-full" />
-            <div className="min-w-0 flex-1"><p className="text-sm font-bold text-myinder-navy">Admin</p><p className="mt-0.5 text-xs text-myinder-muted">Super Admin</p></div>
-            <ChevronRight size={20} className="text-myinder-blue"/>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-myinder-navy">{admin?.name ?? "Admin"}</p>
+              <p className="mt-0.5 truncate text-xs text-myinder-muted">{admin?.email ?? "Administrator"}</p>
+            </div>
+            <button type="button" onClick={handleSignOut} aria-label="Sign out" title="Sign out" className="rounded-lg p-2 text-myinder-muted hover:bg-blue-50 hover:text-myinder-navy">
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </aside>

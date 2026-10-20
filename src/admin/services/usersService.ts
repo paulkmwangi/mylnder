@@ -1,5 +1,6 @@
 import type { SavedUser } from "../types/admin.types";
 import { readLocalCache, writeLocalCache } from "./localCache";
+import { adminApiFetch } from "./adminApiFetch";
 
 const ADMIN_USERS_API_URL =
   import.meta.env.VITE_ADMIN_USERS_API_URL;
@@ -103,7 +104,7 @@ interface UsersPage {
 
 async function getUsersPage(page: number): Promise<UsersPage> {
   const separator = ADMIN_USERS_API_URL.includes("?") ? "&" : "?";
-  const response = await fetch(
+  const response = await adminApiFetch(
     `${ADMIN_USERS_API_URL}${separator}page=${page}&limit=100`,
     {
     method: "GET",
@@ -160,9 +161,17 @@ async function loadUsers(): Promise<SavedUser[]> {
 
 let usersRequest: Promise<SavedUser[]> | null = null;
 
-export function getUsers(): Promise<SavedUser[]> {
+export function getUsers(options: { refresh?: boolean } = {}): Promise<SavedUser[]> {
+  if (options.refresh) {
+    try {
+      localStorage.removeItem(USERS_CACHE_KEY);
+    } catch {
+      console.warn("Unable to clear user cache.");
+    }
+  }
+
   const cachedUsers = readLocalCache(USERS_CACHE_KEY, isSavedUserList);
-  if (cachedUsers) return Promise.resolve(cachedUsers);
+  if (cachedUsers && !options.refresh) return Promise.resolve(cachedUsers);
   if (usersRequest) return usersRequest;
 
   const request = loadUsers().then((users) => {

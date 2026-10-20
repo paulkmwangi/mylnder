@@ -1,3 +1,5 @@
+import { adminApiFetch } from "./adminApiFetch";
+
 type ApiRecord = Record<string, unknown>;
 
 const resolvedUrlCache = new Map<string, { url: string; expiresAt: number }>();
@@ -20,7 +22,7 @@ export async function resolveImageUrl(savedPhotoUrl: string): Promise<string> {
   if (pending) return pending;
 
   const request = (async () => {
-    const response = await fetch(savedPhotoUrl, {
+    const response = await adminApiFetch(savedPhotoUrl, {
       method: "GET",
       headers: { Accept: "application/json" },
     });

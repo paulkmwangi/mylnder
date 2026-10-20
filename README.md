@@ -32,6 +32,12 @@ The API mapper supports common fields including `user_id`/`id`, `name`, `ig_user
 - If the API's response field names differ, update `src/admin/services/usersService.ts` in `mapUser()`.
 - User records are cached in browser `localStorage` for five minutes; invoice lookups are cached for two minutes. This reduces repeat API requests, but cached admin profile and invoice data remains in that browser until the entries expire or site storage is cleared. Do not use this dashboard on a shared or untrusted browser.
 
+## Admin authentication and accounts
+
+The dashboard signs administrators in with `POST /api/admin/login` and creates accounts with `POST /api/admin`, using the backend's documented JSON fields. Create an account at `/admin/signup` before signing in; additional accounts can also be created from Administration → Admins. Names must contain non-whitespace text and be at most 100 characters; emails are limited to 254 characters; passwords must be 12–128 characters and not all whitespace. The access token is held in Zustand and persisted in `sessionStorage` for the current browser tab; admin API requests include it as a Bearer token. Sign out clears the token and cached user/invoice data. Passwords are not stored or returned to the UI.
+
+Admin creation and login are public for the current development phase, and existing backend routes are not JWT-protected. The frontend route guard only controls dashboard navigation; it is not a security boundary. Before exposing the dashboard, require authentication and authorization on protected backend routes, and restrict admin creation to an authorized administrator.
+
 ## User invoices
 
 The user details modal looks up the invoice number included on each user record with `GET /api/admin/invoices/:invoiceNumber`. It displays the invoice/payment status as Successful for paid/completed payments and Pending otherwise. The invoice response may include `amount_minor`, `currency`, `paid_at`, and a nested `payment` object. The lookup result is cached in local storage for two minutes.
