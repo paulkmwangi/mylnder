@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckCircle2, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, X } from "lucide-react";
+import { CheckCircle2,  Plus, Pencil, RefreshCw, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
@@ -16,7 +16,7 @@ function formatDate(value?: string): string {
 
 export default function Admins() {
   const accessToken = useAdminAuthStore((state) => state.accessToken);
-  const currentAdmin = useAdminAuthStore((state) => state.admin);
+const currentAdmin = useAdminAuthStore((state) => state.admin);
   const [admins, setAdmins] = useState<AdminAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -266,9 +266,69 @@ export default function Admins() {
   </div>
 ) : (
   // Keep your existing table here.
-  <div className="overflow-x-auto">
-    {/* Existing administrators table */}
-  </div>
+  
+<div className="overflow-x-auto">
+  <table className="w-full min-w-[650px] text-left text-sm">
+    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+      <tr>
+        <th className="px-5 py-4">Administrator</th>
+        <th className="px-5 py-4">Created</th>
+        <th className="px-5 py-4 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-blue-50">
+      {filteredAdmins.map((admin) => {
+        const isCurrentAdmin = currentAdmin?.id === admin.id;
+
+        return (
+          <tr key={admin.id} className="hover:bg-blue-50/40">
+            <td className="px-5 py-4">
+              <p className="font-semibold text-myinder-navy">
+                {admin.name}
+                {isCurrentAdmin && (
+                  <span className="ml-2 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                    You
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-myinder-muted">{admin.email}</p>
+            </td>
+            <td className="px-5 py-4 text-myinder-muted">
+              {formatDate(
+                "createdAt" in admin
+                  ? String(admin.createdAt ?? "")
+                  : undefined
+              )}
+            </td>
+            <td className="px-5 py-4">
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => startEditing(admin)}
+                  disabled={isCurrentAdmin}
+                >
+                  <Pencil size={15} />
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setDeleteTarget(admin)}
+                  disabled={isCurrentAdmin}
+                >
+                  <Trash2 size={15} />
+                  Delete
+                </Button>
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
+
 )}
       </section>
 
