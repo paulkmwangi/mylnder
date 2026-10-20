@@ -165,7 +165,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
         );
       }
 
-      const poster = await generateAdminUserPoster(user, university, selectedPosterPhotoUrl, (progress) => {
+      const poster = await generateAdminUserPoster(university, selectedPosterPhotoUrl, (progress) => {
         if (generation === posterGenerationRef.current) setPosterProgress(progress);
       });
       const nextUrl = URL.createObjectURL(poster);

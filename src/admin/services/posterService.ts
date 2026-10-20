@@ -1,5 +1,4 @@
 import { resolveImageUrl } from "./imageService";
-import type { SavedUser } from "../types/admin.types";
 import type { UniversityRecord } from "./universitiesService";
 
 export const POSTER_WIDTH = 768;
@@ -126,7 +125,6 @@ function drawTextPlate(
 
 function drawPoster(
   photo: HTMLImageElement,
-  user: SavedUser,
   color: string,
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -156,11 +154,7 @@ function drawPoster(
   context.fillText("mylnder.com", POSTER_WIDTH - 119, 55);
 
   const instagramPlateY = POSTER_HEIGHT - 133;
-  const instagram = user.instagram.replace(/^@+/, "").trim();
-  const instagramLabel =
-    instagram && !/^not provided$/i.test(instagram)
-      ? `@${instagram}`
-      : "Instagram not provided";
+  const instagramLabel = "@mylnderofficial";
   const iconX = 56;
   const textX = 100;
   const maximumTextWidth = POSTER_WIDTH - 84 - (textX - 42) - 28;
@@ -256,7 +250,6 @@ async function fetchSelectedPhoto(photoUrl: string): Promise<Blob> {
 }
 
 export async function generateAdminUserPoster(
-  user: SavedUser,
   university: UniversityRecord,
   photoUrl: string,
   onProgress?: (progress: PosterProgress) => void,
@@ -275,5 +268,5 @@ export async function generateAdminUserPoster(
 
   onProgress?.("drawing-poster");
   const { color } = getPosterColor(university);
-  return canvasToBlob(drawPoster(photo, user, color));
+  return canvasToBlob(drawPoster(photo, color));
 }
