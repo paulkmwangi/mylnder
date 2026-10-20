@@ -46,7 +46,6 @@ function getPhotoUrl(value: unknown): string | null {
     return import.meta.env.DEV ? `/${photo}` : `${ADMIN_API_ORIGIN}/${photo}`;
   }
 
-  // The API documents stored images at GET /api/images/:filename.
   const imagePath = `/api/images/${encodeURIComponent(photo)}`;
   return import.meta.env.DEV ? imagePath : `${ADMIN_API_ORIGIN}${imagePath}`;
 }

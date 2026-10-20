@@ -26,12 +26,11 @@ export default function AdminHeader({
   sidebarOpen,
 }: Props) {
   return (
-    <header className="sticky top-0 z-20 flex min-h-[72px] items-center gap-3 border-b border-blue-100 bg-white/95 px-4 backdrop-blur sm:min-h-[82px] sm:px-8">
+    <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-blue-100 bg-white/95 px-4 py-3 backdrop-blur sm:min-h-[82px] sm:flex-nowrap sm:gap-3 sm:py-0 sm:px-8">
       <button type="button" onClick={onMenuClick} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls="admin-sidebar" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-myinder-navy hover:bg-blue-50 lg:hidden">
         <Menu size={24} />
       </button>
-      <div className="flex-1" />
-      <div className="flex w-full max-w-[680px] items-center gap-2">
+      <div className="order-last flex w-full items-center gap-2 sm:order-none sm:ml-auto sm:max-w-[680px] sm:flex-1">
         <div className="min-w-0 flex-1">
           <Input search value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search users by name, university, or invoice..." />
         </div>
@@ -51,7 +50,7 @@ export default function AdminHeader({
           </select>
         )}
       </div>
-      <Button onClick={onExport} className="shrink-0 px-4 sm:px-5"><Download size={19}/><span className="hidden sm:inline">Export Data</span><span className="sm:hidden">Export</span></Button>
+      <Button onClick={onExport} className="order-last ml-auto shrink-0 px-4 sm:order-none sm:ml-0 sm:px-5"><Download size={19}/><span className="hidden sm:inline">Export Data</span><span className="sm:hidden">Export</span></Button>
     </header>
   );
 }
