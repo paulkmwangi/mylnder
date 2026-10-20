@@ -12,13 +12,20 @@ function asRecord(value: unknown): ApiRecord {
     : {};
 }
 
-export async function resolveImageUrl(savedPhotoUrl: string): Promise<string> {
+export async function resolveImageUrl(
+  savedPhotoUrl: string,
+  options: { refresh?: boolean } = {},
+): Promise<string> {
   const parsedUrl = new URL(savedPhotoUrl, window.location.origin);
   if (!parsedUrl.pathname.startsWith("/api/images/")) return savedPhotoUrl;
 
+  if (options.refresh) {
+    resolvedUrlCache.delete(savedPhotoUrl);
+  }
+
   const cached = resolvedUrlCache.get(savedPhotoUrl);
-  if (cached && cached.expiresAt > Date.now()) return cached.url;
-  const pending = pendingUrlRequests.get(savedPhotoUrl);
+  if (!options.refresh && cached && cached.expiresAt > Date.now()) return cached.url;
+  const pending = options.refresh ? undefined : pendingUrlRequests.get(savedPhotoUrl);
   if (pending) return pending;
 
   const request = (async () => {

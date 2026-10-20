@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, FileText, LoaderCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, FileText, LoaderCircle } from "lucide-react";
 import { getInvoice, type UserInvoice } from "../services/invoicesService";
 
 export default function InvoicePanel({ invoiceNumber }: { invoiceNumber?: string }) {
   const [invoice, setInvoice] = useState<UserInvoice | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const statusLabels: Record<UserInvoice["status"], string> = {
+    successful: "Successful",
+    pending: "Pending",
+    failed: "Failed",
+    canceled: "Canceled",
+    refunded: "Refunded",
+    unknown: "Unknown",
+  };
 
   useEffect(() => {
     if (!invoiceNumber) {
@@ -52,10 +60,18 @@ export default function InvoicePanel({ invoiceNumber }: { invoiceNumber?: string
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
             invoice.status === "successful"
               ? "bg-green-50 text-green-700"
-              : "bg-amber-50 text-amber-700"
+              : invoice.status === "pending"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-slate-100 text-slate-700"
           }`}>
-            {invoice.status === "successful" ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}
-            {invoice.status === "successful" ? "Successful" : "Pending"}
+            {invoice.status === "successful" ? (
+              <CheckCircle2 size={15} />
+            ) : invoice.status === "pending" ? (
+              <Clock3 size={15} />
+            ) : (
+              <AlertCircle size={15} />
+            )}
+            {statusLabels[invoice.status]}
           </span>
         )}
         {loading && <LoaderCircle size={17} aria-label="Loading invoice" className="animate-spin text-myinder-blue" />}

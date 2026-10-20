@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye, ImagePlus, RefreshCw } from "lucide-react";
+import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye, ImagePlus, RefreshCw, Check } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
 import ColorfulIcon from "./ColorfulIcon";
@@ -19,6 +19,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   const [error, setError] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [posterUrl, setPosterUrl] = useState("");
+  const [selectedPosterPhotoUrl, setSelectedPosterPhotoUrl] = useState("");
   const [posterLoading, setPosterLoading] = useState(false);
   const [posterProgress, setPosterProgress] = useState<PosterProgress | null>(null);
   const [posterError, setPosterError] = useState("");
@@ -50,6 +51,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
     setError("");
     setPreviewIndex(null);
     setPosterUrl("");
+    setSelectedPosterPhotoUrl(user?.posterPhotoUrl ?? user?.images[0] ?? "");
     setPosterError("");
     setPosterWarning("");
     setPosterLoading(false);
@@ -69,6 +71,10 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   }, [user?.id]);
 
   if (!user) return null;
+
+  const posterPhotos = Array.from(
+    new Set([...(user.posterPhotoUrl ? [user.posterPhotoUrl] : []), ...user.images]),
+  );
 
   const saveImage = async (url: string, index: number) => {
     try {
@@ -159,7 +165,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
         );
       }
 
-      const poster = await generateAdminUserPoster(user, university, (progress) => {
+      const poster = await generateAdminUserPoster(user, university, selectedPosterPhotoUrl, (progress) => {
         if (generation === posterGenerationRef.current) setPosterProgress(progress);
       });
       const nextUrl = URL.createObjectURL(poster);
@@ -223,13 +229,13 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
                   Profile poster
                 </h3>
                 <p className="mt-1 text-xs text-myinder-muted">
-                  Uses this user’s first photo and university brand color.
+                  Choose any photo. The original image stays clear; only the frame and Instagram icon use the university color.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => void generatePoster()}
-                disabled={posterLoading || !user.posterPhotoUrl}
+                disabled={posterLoading || !selectedPosterPhotoUrl}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-myinder-orange px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
               >
                 {posterLoading ? (
@@ -240,20 +246,65 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
                   <ImagePlus size={18} />
                 )}
                 {posterLoading
-                  ? posterProgress === "removing-background"
-                    ? "Removing background..."
-                    : posterProgress === "drawing-poster"
-                      ? "Finishing poster..."
-                      : "Loading photo..."
+                  ? posterProgress === "drawing-poster"
+                    ? "Finishing poster..."
+                    : "Loading photo..."
                   : posterUrl
                     ? "Regenerate poster"
                     : "Generate profile poster"}
               </button>
             </div>
-            {!user.posterPhotoUrl && (
+            {posterPhotos.length === 0 && (
               <p className="mt-3 text-sm text-amber-800">
-                Poster unavailable: this user’s first photo is missing or invalid. A later photo will not be substituted.
+                Poster unavailable: this user has no photos to use.
               </p>
+            )}
+            {posterPhotos.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold text-myinder-muted">Select a photo for the poster</p>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {posterPhotos.map((url, index) => {
+                    const selected = selectedPosterPhotoUrl === url;
+                    return (
+                      <button
+                        key={`${url}-${index}`}
+                        type="button"
+                        aria-label={`Use photo ${index + 1} for poster`}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setSelectedPosterPhotoUrl(url);
+                          setPosterUrl("");
+                          setPosterError("");
+                          setPosterWarning("");
+                          if (posterUrlRef.current) {
+                            URL.revokeObjectURL(posterUrlRef.current);
+                            posterUrlRef.current = null;
+                          }
+                        }}
+                        disabled={posterLoading}
+                        className={`group relative aspect-square overflow-hidden rounded-lg border-2 transition ${
+                          selected ? "border-myinder-orange ring-2 ring-orange-100" : "border-transparent hover:border-blue-200"
+                        } disabled:cursor-not-allowed`}
+                      >
+                        <ResolvedImage
+                          src={url}
+                          alt=""
+                          className="h-full w-full"
+                          imageClassName="h-full w-full object-cover"
+                        />
+                        <span className="absolute bottom-1 left-1 rounded bg-slate-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          Photo {index + 1}
+                        </span>
+                        {selected && (
+                          <span className="absolute right-1 top-1 rounded-full bg-myinder-orange p-1 text-white">
+                            <Check size={12} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
             {posterWarning && (
               <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">

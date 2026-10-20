@@ -53,13 +53,19 @@ function mapInvoice(
   fallbackInvoiceNumber = "",
 ): UserInvoice {
   const record = asRecord(value);
-  const invoice = asRecord(record.invoice);
-  const payment = asRecord(record.payment);
+  const data = asRecord(record.data ?? record.result);
+  const invoice = asRecord(record.invoice ?? data.invoice ?? data);
+  const payment = asRecord(record.payment ?? invoice.payment ?? data.payment);
 
   const rawStatus = String(
     invoice.status ??
+      invoice.payment_status ??
       payment.status ??
+      payment.payment_status ??
       record.status ??
+      record.payment_status ??
+      data.status ??
+      data.payment_status ??
       "",
   ).toLowerCase();
 
@@ -98,9 +104,11 @@ function mapInvoice(
   const rawAmount =
     invoice.amount_minor ??
     invoice.amount_paid ??
+    invoice.amount ??
     payment.amount_minor ??
     payment.amount ??
-    record.amount_minor;
+    record.amount_minor ??
+    data.amount_minor;
 
   const amountMinor =
     typeof rawAmount === "number" ||
@@ -112,7 +120,8 @@ function mapInvoice(
   const rawCurrency =
     invoice.currency ??
     payment.currency ??
-    record.currency;
+    record.currency ??
+    data.currency;
 
   const currency =
     typeof rawCurrency === "string" &&
@@ -123,13 +132,18 @@ function mapInvoice(
   const rawPaidAt =
     invoice.paid_at ??
     payment.paid_at ??
-    record.paid_at;
+    record.paid_at ??
+    data.paid_at;
 
   const rawInvoiceNumber =
     invoice.invoice_number ??
     invoice.invoiceNumber ??
+    invoice.number ??
     record.invoice_number ??
-    record.invoiceNumber;
+    record.invoiceNumber ??
+    data.invoice_number ??
+    data.invoiceNumber ??
+    data.number;
 
   return {
     invoiceNumber:
@@ -211,6 +225,12 @@ function getErrorMessage(
   status: number,
 ): string {
   const message = asRecord(payload).message;
+  if (
+    Array.isArray(message) &&
+    message.every((item) => typeof item === "string")
+  ) {
+    return message.join(", ");
+  }
 
   return typeof message === "string" && message.trim()
     ? message
@@ -229,16 +249,17 @@ export function getInvoice(
   invoiceNumber: string,
   options: { refresh?: boolean } = {},
 ): Promise<UserInvoice> {
-  const normalizedInvoiceNumber = invoiceNumber.trim().toUpperCase();
+  const requestedInvoiceNumber = invoiceNumber.trim();
+  const cacheIdentity = requestedInvoiceNumber;
 
-  if (!normalizedInvoiceNumber) {
+  if (!requestedInvoiceNumber) {
     return Promise.reject(
       new Error("Invoice number is required."),
     );
   }
 
   const cacheKey =
-    `mylnder-admin-invoice-v1-${normalizedInvoiceNumber}`;
+    `mylnder-admin-invoice-v1-${cacheIdentity}`;
 
   if (options.refresh) {
     try {
@@ -258,7 +279,7 @@ export function getInvoice(
   }
 
   const existingRequest = pendingRequests.get(
-    normalizedInvoiceNumber,
+    cacheIdentity,
   );
 
   if (existingRequest) {
@@ -268,7 +289,7 @@ export function getInvoice(
   const request = (async (): Promise<UserInvoice> => {
     const response = await adminApiFetch(
       `${getInvoicesEndpoint()}/${encodeURIComponent(
-        normalizedInvoiceNumber,
+        requestedInvoiceNumber,
       )}`,
       {
         method: "GET",
@@ -288,7 +309,7 @@ export function getInvoice(
 
     const invoice = mapInvoice(
       payload,
-      normalizedInvoiceNumber,
+      requestedInvoiceNumber,
     );
 
     writeLocalCache(
@@ -300,21 +321,21 @@ export function getInvoice(
     return invoice;
   })();
 
-  pendingRequests.set(normalizedInvoiceNumber, request);
+  pendingRequests.set(cacheIdentity, request);
 
   void request.then(
     () => {
       if (
-        pendingRequests.get(normalizedInvoiceNumber) === request
+        pendingRequests.get(cacheIdentity) === request
       ) {
-        pendingRequests.delete(normalizedInvoiceNumber);
+        pendingRequests.delete(cacheIdentity);
       }
     },
     () => {
       if (
-        pendingRequests.get(normalizedInvoiceNumber) === request
+        pendingRequests.get(cacheIdentity) === request
       ) {
-        pendingRequests.delete(normalizedInvoiceNumber);
+        pendingRequests.delete(cacheIdentity);
       }
     },
   );

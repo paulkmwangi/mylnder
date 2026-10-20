@@ -56,6 +56,11 @@ function mapUser(value: unknown, index: number): SavedUser {
   const school = asRecord(record.school ?? record.university);
   const invoice = asRecord(record.invoice);
   const payment = asRecord(record.payment);
+  const invoiceNumber =
+    firstText(record, ["invoice_number", "invoiceNumber"]) ||
+    firstText(invoice, ["invoice_number", "invoiceNumber", "number"]) ||
+    firstText(payment, ["invoice_number", "invoiceNumber", "reference"]) ||
+    firstText(record, ["payment_reference"]);
   const rawPhotos =
     record.photos ?? record.images ?? record.user_photos ?? record.photo_urls ?? [];
   const photos = Array.isArray(rawPhotos) ? rawPhotos : [];
@@ -86,11 +91,7 @@ function mapUser(value: unknown, index: number): SavedUser {
     bio: firstText(record, ["bio", "about", "user_bio"]),
     song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
     createdAt: firstText(record, ["created_at", "createdAt"]),
-    invoiceNumber:
-      firstText(record, ["invoice_number", "invoiceNumber"]) ||
-      firstText(invoice, ["invoice_number", "invoiceNumber"]) ||
-      firstText(payment, ["invoice_number", "invoiceNumber"]) ||
-      undefined,
+    ...(invoiceNumber ? { invoiceNumber } : {}),
     ...(posterPhotoUrl ? { posterPhotoUrl } : {}),
     images: photos.map(getPhotoUrl).filter((url): url is string => Boolean(url)),
   };

@@ -53,39 +53,45 @@ const statusPresentation: Record<
 
 async function loadInvoiceRows(refresh: boolean): Promise<InvoiceRow[]> {
   const users = await getUsers({ refresh });
-  const linkedUsers = new Map<string, Set<string>>();
+  const linkedUsers = new Map<
+    string,
+    { invoiceNumber: string; names: Set<string> }
+  >();
 
   for (const user of users) {
     const invoiceNumber = user.invoiceNumber?.trim();
     if (!invoiceNumber) continue;
 
     const key = invoiceNumber.toUpperCase();
-    const names = linkedUsers.get(key) ?? new Set<string>();
-    names.add(user.name);
-    linkedUsers.set(key, names);
+    const linked = linkedUsers.get(key) ?? {
+      invoiceNumber,
+      names: new Set<string>(),
+    };
+    linked.names.add(user.name);
+    linkedUsers.set(key, linked);
   }
 
-  const invoiceNumbers = Array.from(linkedUsers.keys());
-  const rows: InvoiceRow[] = new Array(invoiceNumbers.length);
+  const invoices = Array.from(linkedUsers.values());
+  const rows: InvoiceRow[] = new Array(invoices.length);
   let nextIndex = 0;
 
   async function worker() {
-    while (nextIndex < invoiceNumbers.length) {
+    while (nextIndex < invoices.length) {
       const index = nextIndex;
       nextIndex += 1;
-      const invoiceNumber = invoiceNumbers[index];
+      const { invoiceNumber, names } = invoices[index];
 
       try {
         const invoice = await getInvoice(invoiceNumber, { refresh });
         rows[index] = {
           invoiceNumber: invoice.invoiceNumber || invoiceNumber,
-          userName: Array.from(linkedUsers.get(invoiceNumber) ?? []).join(", "),
+          userName: Array.from(names).join(", "),
           invoice,
         };
       } catch (cause: unknown) {
         rows[index] = {
           invoiceNumber,
-          userName: Array.from(linkedUsers.get(invoiceNumber) ?? []).join(", "),
+          userName: Array.from(names).join(", "),
           invoice: null,
           error:
             cause instanceof Error
@@ -98,7 +104,7 @@ async function loadInvoiceRows(refresh: boolean): Promise<InvoiceRow[]> {
 
   await Promise.all(
     Array.from(
-      { length: Math.min(5, invoiceNumbers.length) },
+      { length: Math.min(5, invoices.length) },
       () => worker(),
     ),
   );
