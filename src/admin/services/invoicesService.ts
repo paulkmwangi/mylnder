@@ -53,10 +53,14 @@ function mapInvoice(
   fallbackInvoiceNumber = "",
 ): UserInvoice {
   const record = asRecord(value);
+  const invoice = asRecord(record.invoice);
   const payment = asRecord(record.payment);
 
   const rawStatus = String(
-    payment.status ?? record.status ?? "",
+    invoice.status ??
+      payment.status ??
+      record.status ??
+      "",
   ).toLowerCase();
 
   const status: UserInvoice["status"] =
@@ -73,29 +77,42 @@ function mapInvoice(
           "processing",
           "requires_payment_method",
           "requires_action",
+          "requires_confirmation",
         ].includes(rawStatus)
         ? "pending"
         : ["canceled", "cancelled", "void"].includes(rawStatus)
           ? "canceled"
-          : ["refunded", "partially_refunded"].includes(rawStatus)
+          : [
+              "refunded",
+              "partially_refunded",
+            ].includes(rawStatus)
             ? "refunded"
             : [
                 "failed",
                 "declined",
                 "payment_failed",
-              ].includes(rawStatus)
+            ].includes(rawStatus)
               ? "failed"
               : "unknown";
 
-  const rawAmount = record.amount_minor ?? payment.amount_minor;
+  const rawAmount =
+    invoice.amount_minor ??
+    invoice.amount_paid ??
+    payment.amount_minor ??
+    payment.amount ??
+    record.amount_minor;
 
   const amountMinor =
     typeof rawAmount === "number" ||
-    (typeof rawAmount === "string" && rawAmount.trim() !== "")
+    (typeof rawAmount === "string" &&
+      rawAmount.trim() !== "")
       ? Number(rawAmount)
       : undefined;
 
-  const rawCurrency = record.currency ?? payment.currency;
+  const rawCurrency =
+    invoice.currency ??
+    payment.currency ??
+    record.currency;
 
   const currency =
     typeof rawCurrency === "string" &&
@@ -103,10 +120,16 @@ function mapInvoice(
       ? rawCurrency.toUpperCase()
       : undefined;
 
-  const rawPaidAt = record.paid_at ?? payment.paid_at;
+  const rawPaidAt =
+    invoice.paid_at ??
+    payment.paid_at ??
+    record.paid_at;
 
   const rawInvoiceNumber =
-    record.invoice_number ?? record.invoiceNumber;
+    invoice.invoice_number ??
+    invoice.invoiceNumber ??
+    record.invoice_number ??
+    record.invoiceNumber;
 
   return {
     invoiceNumber:
@@ -115,7 +138,8 @@ function mapInvoice(
         ? rawInvoiceNumber.trim()
         : fallbackInvoiceNumber,
     status,
-    ...(amountMinor !== undefined && Number.isFinite(amountMinor)
+    ...(amountMinor !== undefined &&
+    Number.isFinite(amountMinor)
       ? { amountMinor }
       : {}),
     ...(currency ? { currency } : {}),

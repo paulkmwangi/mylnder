@@ -34,6 +34,8 @@ The API mapper supports common fields including `user_id`/`id`, `name`, `ig_user
 
 ## Admin authentication and accounts
 
+The Admins page lists accounts with `GET /api/admin`, edits name/email with `PATCH /api/admin/:id`, and deletes accounts with `DELETE /api/admin/:id`. These endpoints must be available on the backend and return admin records containing `id`, `name`, and `email`; list responses may be a direct array or wrapped in `admins`, `items`, or `results`.
+
 The dashboard signs administrators in with `POST /api/admin/login` and creates accounts with `POST /api/admin`, using the backend's documented JSON fields. Create an account at `/admin/signup` before signing in; additional accounts can also be created from Administration → Admins. Names must contain non-whitespace text and be at most 100 characters; emails are limited to 254 characters; passwords must be 12–128 characters and not all whitespace. The access token is held in Zustand and persisted in `sessionStorage` for the current browser tab; admin API requests include it as a Bearer token. Sign out clears the token and cached user/invoice data. Passwords are not stored or returned to the UI.
 
 Admin creation and login are public for the current development phase, and existing backend routes are not JWT-protected. The frontend route guard only controls dashboard navigation; it is not a security boundary. Before exposing the dashboard, require authentication and authorization on protected backend routes, and restrict admin creation to an authorized administrator.

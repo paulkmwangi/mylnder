@@ -86,10 +86,11 @@ function getAdmin(payload: unknown): AdminAccount {
   };
 }
 
-async function postAdminRequest(
+async function requestAdminApi(
   endpoint: string,
-  body: object,
+  body: object | undefined,
   accessToken?: string,
+  method: "GET" | "POST" | "PATCH" | "DELETE" = "POST",
 ): Promise<unknown> {
   const headers = new Headers({
     Accept: "application/json",
@@ -98,9 +99,9 @@ async function postAdminRequest(
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
   const response = await fetch(`${ADMIN_API_BASE_URL}${endpoint}`, {
-    method: "POST",
+    method,
     headers,
-    body: JSON.stringify(body),
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const payload = await readPayload(response);
 
@@ -119,7 +120,7 @@ export async function loginAdmin(
   email: string,
   password: string,
 ): Promise<AdminSession> {
-  const payload = await postAdminRequest("/api/admin/login", {
+  const payload = await requestAdminApi("/api/admin/login", {
     email: email.trim(),
     password,
   });
@@ -148,11 +149,63 @@ export async function createAdmin(
   admin: CreateAdminInput,
   accessToken?: string,
 ): Promise<AdminAccount> {
-  const payload = await postAdminRequest("/api/admin", {
+  const payload = await requestAdminApi("/api/admin", {
     name: admin.name.trim(),
     email: admin.email.trim(),
     password: admin.password,
   }, accessToken);
 
   return getAdmin(payload);
+}
+
+export async function getAdmins(accessToken: string): Promise<AdminAccount[]> {
+  const payload = await requestAdminApi("/api/admin", undefined, accessToken, "GET");
+  const body = asRecord(payload);
+  const data = asRecord(body.data);
+  const records = Array.isArray(payload)
+    ? payload
+    : body.admins ??
+      data.admins ??
+      body.items ??
+      data.items ??
+      body.results ??
+      data.results ??
+      body.data;
+
+  if (!Array.isArray(records)) {
+    throw new Error("The admin API response did not contain an admins list.");
+  }
+
+  return records.map(getAdmin);
+}
+
+export async function updateAdmin(
+  id: string,
+  changes: Pick<AdminAccount, "name" | "email">,
+  accessToken: string,
+): Promise<AdminAccount | undefined> {
+  const payload = await requestAdminApi(
+    `/api/admin/${encodeURIComponent(id)}`,
+    { name: changes.name.trim(), email: changes.email.trim() },
+    accessToken,
+    "PATCH",
+  );
+  const body = asRecord(payload);
+  const data = asRecord(body.data);
+  const updated = body.admin ?? data.admin ?? body.data;
+
+  if (!updated || typeof updated !== "object" || Array.isArray(updated)) {
+    return undefined;
+  }
+
+  return getAdmin(updated);
+}
+
+export async function deleteAdmin(id: string, accessToken: string): Promise<void> {
+  await requestAdminApi(
+    `/api/admin/${encodeURIComponent(id)}`,
+    undefined,
+    accessToken,
+    "DELETE",
+  );
 }
