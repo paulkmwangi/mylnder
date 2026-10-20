@@ -40,6 +40,10 @@ The dashboard signs administrators in with `POST /api/admin/login` and creates a
 
 Admin creation and login are public for the current development phase, and existing backend routes are not JWT-protected. The frontend route guard only controls dashboard navigation; it is not a security boundary. Before exposing the dashboard, require authentication and authorization on protected backend routes, and restrict admin creation to an authorized administrator.
 
+## Admin profile posters
+
+The user-details modal can generate a 1092 × 1440 PNG from the user's first photo, with the matching university's configured `custom_color` used for poster accents. The generated file is previewed in the browser and downloaded locally; it is not uploaded or saved by the dashboard. Poster generation uses `@imgly/background-removal` in the browser and downloads its model/WASM assets from IMG.LY on first use; user photos are processed locally. The package is licensed under AGPL-3.0, so review its licensing terms before distributing the dashboard. If the university color is missing or invalid, the poster warns and falls back to the dashboard's documented Myinder orange.
+
 ## User invoices
 
 The user details modal looks up the invoice number included on each user record with `GET /api/admin/invoices/:invoiceNumber`. It displays the invoice/payment status as Successful for paid/completed payments and Pending otherwise. The invoice response may include `amount_minor`, `currency`, `paid_at`, and a nested `payment` object. The lookup result is cached in local storage for two minutes.

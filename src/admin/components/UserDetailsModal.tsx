@@ -1,16 +1,30 @@
-import { useEffect, useState } from "react";
-import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye, ImagePlus, RefreshCw } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
 import ColorfulIcon from "./ColorfulIcon";
 import ResolvedImage from "./ResolvedImage";
 import { resolveImageUrl } from "../services/imageService";
 import InvoicePanel from "./InvoicePanel";
+import { useAdminAuthStore } from "../stores/adminAuthStore";
+import { getUniversities } from "../services/universitiesService";
+import {
+  generateAdminUserPoster,
+  getPosterColor,
+  type PosterProgress,
+} from "../services/posterService";
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [posterUrl, setPosterUrl] = useState("");
+  const [posterLoading, setPosterLoading] = useState(false);
+  const [posterProgress, setPosterProgress] = useState<PosterProgress | null>(null);
+  const [posterError, setPosterError] = useState("");
+  const [posterWarning, setPosterWarning] = useState("");
+  const posterUrlRef = useRef<string | null>(null);
+  const posterGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!user) return;
@@ -35,6 +49,23 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   useEffect(() => {
     setError("");
     setPreviewIndex(null);
+    setPosterUrl("");
+    setPosterError("");
+    setPosterWarning("");
+    setPosterLoading(false);
+    setPosterProgress(null);
+    if (posterUrlRef.current) {
+      URL.revokeObjectURL(posterUrlRef.current);
+      posterUrlRef.current = null;
+    }
+
+    return () => {
+      posterGenerationRef.current += 1;
+      if (posterUrlRef.current) {
+        URL.revokeObjectURL(posterUrlRef.current);
+        posterUrlRef.current = null;
+      }
+    };
   }, [user?.id]);
 
   if (!user) return null;
@@ -91,6 +122,74 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
     }
   };
 
+  const generatePoster = async () => {
+    if (!user || posterLoading) return;
+
+    const generation = ++posterGenerationRef.current;
+    setPosterError("");
+    setPosterWarning("");
+    setPosterLoading(true);
+    setPosterProgress("loading-photo");
+
+    try {
+      const auth = useAdminAuthStore.getState();
+      if (!auth.accessToken || !auth.expiresAt || auth.expiresAt <= Date.now()) {
+        throw new Error("Your admin session expired. Sign in again before generating a poster.");
+      }
+
+      const universities = await getUniversities();
+      const university = user.universityId
+        ? universities.find((record) => record.id === user.universityId)
+        : universities.find(
+            (record) => record.name.trim().toLocaleLowerCase() === user.university.trim().toLocaleLowerCase(),
+          );
+
+      if (!university) {
+        throw new Error(
+          user.universityId
+            ? "The user's university record could not be found. Check the school ID in the users API."
+            : "The user's university could not be matched to a university record.",
+        );
+      }
+
+      const color = getPosterColor(university);
+      if (color.usedFallback) {
+        setPosterWarning(
+          `${university.name} has no valid configured brand color; the Myinder orange fallback is being used.`,
+        );
+      }
+
+      const poster = await generateAdminUserPoster(user, university, (progress) => {
+        if (generation === posterGenerationRef.current) setPosterProgress(progress);
+      });
+      const nextUrl = URL.createObjectURL(poster);
+      if (generation !== posterGenerationRef.current) {
+        URL.revokeObjectURL(nextUrl);
+        return;
+      }
+
+      if (posterUrlRef.current) URL.revokeObjectURL(posterUrlRef.current);
+      posterUrlRef.current = nextUrl;
+      setPosterUrl(nextUrl);
+    } catch (cause: unknown) {
+      if (generation === posterGenerationRef.current) {
+        setPosterError(cause instanceof Error ? cause.message : "Unable to generate the profile poster.");
+      }
+    } finally {
+      if (generation === posterGenerationRef.current) {
+        setPosterLoading(false);
+        setPosterProgress(null);
+      }
+    }
+  };
+
+  const posterFilename = `myinder-${user.name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "user"}-poster.png`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-800/50 p-3 backdrop-blur-[2px] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="modal-user-name" className="relative flex max-h-[88vh] w-full max-w-[805px] flex-col overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl">
@@ -116,6 +215,75 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
             </section>
           </div>
           <InvoicePanel invoiceNumber={user.invoiceNumber} />
+          <section className="mb-6 rounded-lg border border-blue-100 bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-myinder-navy">
+                  <ImagePlus size={18} className="text-myinder-orange" />
+                  Profile poster
+                </h3>
+                <p className="mt-1 text-xs text-myinder-muted">
+                  Uses this user’s first photo and university brand color.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void generatePoster()}
+                disabled={posterLoading || !user.posterPhotoUrl}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-myinder-orange px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+              >
+                {posterLoading ? (
+                  <LoaderCircle size={18} className="animate-spin" />
+                ) : posterUrl ? (
+                  <RefreshCw size={17} />
+                ) : (
+                  <ImagePlus size={18} />
+                )}
+                {posterLoading
+                  ? posterProgress === "removing-background"
+                    ? "Removing background..."
+                    : posterProgress === "drawing-poster"
+                      ? "Finishing poster..."
+                      : "Loading photo..."
+                  : posterUrl
+                    ? "Regenerate poster"
+                    : "Generate profile poster"}
+              </button>
+            </div>
+            {!user.posterPhotoUrl && (
+              <p className="mt-3 text-sm text-amber-800">
+                Poster unavailable: this user’s first photo is missing or invalid. A later photo will not be substituted.
+              </p>
+            )}
+            {posterWarning && (
+              <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {posterWarning}
+              </p>
+            )}
+            {posterError && (
+              <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                {posterError}
+              </p>
+            )}
+            {posterUrl && (
+              <div className="mt-4 border-t border-blue-50 pt-4">
+                <img
+                  src={posterUrl}
+                  alt={`${user.name} profile poster preview`}
+                  className="mx-auto max-h-[560px] w-auto rounded-lg bg-slate-100 object-contain shadow-sm"
+                />
+                <div className="mt-4 flex justify-center">
+                  <a
+                    href={posterUrl}
+                    download={posterFilename}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-myinder-blue transition hover:bg-blue-50"
+                  >
+                    <Download size={17} /> Download PNG
+                  </a>
+                </div>
+              </div>
+            )}
+          </section>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-bold text-myinder-navy">User Photos</h3>
             <button onClick={saveAll} disabled={downloading || user.images.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-myinder-orange px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-orange-600 disabled:opacity-60 sm:text-sm">

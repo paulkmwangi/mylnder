@@ -7,7 +7,7 @@ const ADMIN_USERS_API_URL =
 const ADMIN_API_ORIGIN =
   import.meta.env.VITE_ADMIN_API_ORIGIN ||
   new URL(ADMIN_USERS_API_URL, window.location.origin).origin;
-const USERS_CACHE_KEY = "mylnder-admin-users-v1";
+const USERS_CACHE_KEY = "mylnder-admin-users-v2";
 const USERS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
@@ -59,10 +59,22 @@ function mapUser(value: unknown, index: number): SavedUser {
   const rawPhotos =
     record.photos ?? record.images ?? record.user_photos ?? record.photo_urls ?? [];
   const photos = Array.isArray(rawPhotos) ? rawPhotos : [];
+  let posterPhotoUrl: string | undefined;
+  if (photos.length > 0) {
+    try {
+      posterPhotoUrl = getPhotoUrl(photos[0]) ?? undefined;
+    } catch {
+      posterPhotoUrl = undefined;
+    }
+  }
+  const universityId =
+    firstText(school, ["id", "school_id", "university_id", "uuid"]) ||
+    firstText(record, ["school_id", "university_id", "schoolId", "universityId"]);
 
   return {
     id: firstText(record, ["user_id", "id", "uuid"], `user-${index + 1}`),
     name: firstText(record, ["name", "full_name", "username"], "Unnamed user"),
+    ...(universityId ? { universityId } : {}),
     university:
       firstText(record, ["university_name", "university", "school_name", "school"], "") ||
       firstText(school, ["name", "school_name", "university_name"], "") ||
@@ -79,6 +91,7 @@ function mapUser(value: unknown, index: number): SavedUser {
       firstText(invoice, ["invoice_number", "invoiceNumber"]) ||
       firstText(payment, ["invoice_number", "invoiceNumber"]) ||
       undefined,
+    ...(posterPhotoUrl ? { posterPhotoUrl } : {}),
     images: photos.map(getPhotoUrl).filter((url): url is string => Boolean(url)),
   };
 }

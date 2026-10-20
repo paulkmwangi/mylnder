@@ -13,6 +13,9 @@ const USERS_API_URL = import.meta.env.VITE_ADMIN_USERS_API_URL;
 const UNIVERSITIES_API_URL =
   import.meta.env.VITE_ADMIN_UNIVERSITIES_API_URL ||
   USERS_API_URL.replace(/\/users\/?$/, "/Schools");
+const UNIVERSITIES_CACHE_TTL_MS = 60_000;
+let universitiesCache: { rows: UniversityRecord[]; expiresAt: number } | null = null;
+let universitiesRequest: Promise<UniversityRecord[]> | null = null;
 
 type ApiRecord = Record<string, unknown>;
 
@@ -87,6 +90,26 @@ function mapUniversity(value: unknown): UniversityRecord {
   
 
 export async function getUniversities(): Promise<UniversityRecord[]> {
+  if (universitiesCache && universitiesCache.expiresAt > Date.now()) {
+    return universitiesCache.rows;
+  }
+  if (universitiesRequest) return universitiesRequest;
+
+  const request = loadUniversities();
+  universitiesRequest = request;
+  try {
+    const rows = await request;
+    universitiesCache = {
+      rows,
+      expiresAt: Date.now() + UNIVERSITIES_CACHE_TTL_MS,
+    };
+    return rows;
+  } finally {
+    if (universitiesRequest === request) universitiesRequest = null;
+  }
+}
+
+async function loadUniversities(): Promise<UniversityRecord[]> {
   if (!UNIVERSITIES_API_URL) {
     throw new Error("The universities API URL is not configured.");
   }
@@ -157,4 +180,6 @@ export async function createUniversity(
         `Unable to add the university (HTTP ${response.status}).`
     );
   }
+
+  universitiesCache = null;
 }

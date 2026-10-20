@@ -230,9 +230,7 @@ export default function Admins() {
       Please check your connection and try again.
     </p>
 
-    <p className="mt-2 text-xs text-slate-400">
-      Error details: {listError}
-    </p>
+    
 
     <Button
       type="button"

@@ -2,12 +2,14 @@ export interface SavedUser {
   id: string;
   name: string;
   university: string;
+  universityId?: string;
   major: string;
   instagram: string;
   bio?: string;
   song?: string;
   createdAt?: string;
   invoiceNumber?: string;
+  posterPhotoUrl?: string;
   images: string[];
 }
 

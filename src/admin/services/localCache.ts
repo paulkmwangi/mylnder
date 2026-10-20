@@ -53,7 +53,7 @@ export function clearAdminCaches(): void {
       localStorage.key(index),
     ).filter(
       (key): key is string =>
-        key === "mylnder-admin-users-v1" ||
+        (key !== null && key.startsWith("mylnder-admin-users-v")) ||
         (key !== null && key.startsWith("mylnder-admin-invoice-v1-")),
     );
     keys.forEach((key) => localStorage.removeItem(key));
