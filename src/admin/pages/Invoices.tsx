@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, CheckCircle2, Clock3, FileText, RefreshCw, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, Download, ExternalLink, FileText, RefreshCw, XCircle } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import LoadingState from "../../components/shared/LoadingState";
-import { getInvoice, type UserInvoice } from "../services/invoicesService";
+import {
+  getAdminPaymentStatuses,
+  getInvoices,
+  type UserInvoice,
+} from "../services/invoicesService";
 import { getUsers } from "../services/usersService";
 
 interface InvoiceRow {
-  invoiceNumber: string;
+  id: string;
   userName: string;
-  invoice: UserInvoice | null;
-  error?: string;
+  invoice: UserInvoice;
+  paymentStatus?: UserInvoice["status"];
 }
 
 type InvoiceStatus = UserInvoice["status"];
@@ -20,7 +24,7 @@ const statusPresentation: Record<
   { label: string; className: string; Icon: typeof CheckCircle2 }
 > = {
   successful: {
-    label: "Successful",
+    label: "Succeeded",
     className: "bg-emerald-50 text-emerald-700",
     Icon: CheckCircle2,
   },
@@ -51,65 +55,51 @@ const statusPresentation: Record<
   },
 };
 
-async function loadInvoiceRows(refresh: boolean): Promise<InvoiceRow[]> {
-  const users = await getUsers({ refresh });
-  const linkedUsers = new Map<
-    string,
-    { invoiceNumber: string; names: Set<string> }
-  >();
+interface InvoiceListResult {
+  rows: InvoiceRow[];
+  dataWarning: string;
+}
 
-  for (const user of users) {
-    const invoiceNumber = user.invoiceNumber?.trim();
-    if (!invoiceNumber) continue;
-
-    const key = invoiceNumber.toUpperCase();
-    const linked = linkedUsers.get(key) ?? {
-      invoiceNumber,
-      names: new Set<string>(),
-    };
-    linked.names.add(user.name);
-    linkedUsers.set(key, linked);
-  }
-
-  const invoices = Array.from(linkedUsers.values());
-  const rows: InvoiceRow[] = new Array(invoices.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < invoices.length) {
-      const index = nextIndex;
-      nextIndex += 1;
-      const { invoiceNumber, names } = invoices[index];
-
-      try {
-        const invoice = await getInvoice(invoiceNumber, { refresh });
-        rows[index] = {
-          invoiceNumber: invoice.invoiceNumber || invoiceNumber,
-          userName: Array.from(names).join(", "),
-          invoice,
-        };
-      } catch (cause: unknown) {
-        rows[index] = {
-          invoiceNumber,
-          userName: Array.from(names).join(", "),
-          invoice: null,
-          error:
-            cause instanceof Error
-              ? cause.message
-              : "Unable to load payment status.",
-        };
-      }
-    }
-  }
-
-  await Promise.all(
-    Array.from(
-      { length: Math.min(5, invoices.length) },
-      () => worker(),
+async function loadInvoiceRows(refresh: boolean): Promise<InvoiceListResult> {
+  const [invoices, userResult, paymentResult] = await Promise.all([
+    getInvoices(),
+    getUsers({ refresh }).then(
+      (users) => ({ users, error: "" }),
+      (cause: unknown) => ({
+        users: [],
+        error:
+          cause instanceof Error
+            ? cause.message
+            : "Unable to match invoice records to users.",
+      }),
     ),
-  );
+    getAdminPaymentStatuses().then(
+      (statuses) => ({ statuses, error: "" }),
+      (cause: unknown) => ({
+        statuses: new Map<string, UserInvoice["status"]>(),
+        error:
+          cause instanceof Error
+            ? cause.message
+            : "Unable to load linked payment statuses.",
+      }),
+    ),
+  ]);
+  const usersById = new Map(userResult.users.map((user) => [user.id, user]));
 
-  return rows;
+  return {
+    rows: invoices.map((invoice) => ({
+      id: invoice.invoiceId ?? invoice.invoiceNumber,
+      userName:
+        (invoice.userId ? usersById.get(invoice.userId)?.name : undefined) ??
+        invoice.customerEmail ??
+        "User unavailable",
+      invoice,
+      paymentStatus: invoice.paymentId
+        ? paymentResult.statuses.get(invoice.paymentId)
+        : undefined,
+    })),
+    dataWarning: [userResult.error, paymentResult.error].filter(Boolean).join(" "),
+  };
 }
 
 export default function Invoices() {
@@ -117,6 +107,7 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [dataWarning, setDataWarning] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -126,12 +117,14 @@ export default function Invoices() {
     setError("");
 
     try {
-      setRows(await loadInvoiceRows(refresh));
+      const result = await loadInvoiceRows(refresh);
+      setRows(result.rows);
+      setDataWarning(result.dataWarning);
     } catch (cause: unknown) {
       setError(
         cause instanceof Error
           ? cause.message
-          : "Unable to load users and their invoice references.",
+          : "Unable to load the admin invoice list.",
       );
     } finally {
       setLoading(false);
@@ -146,10 +139,11 @@ export default function Invoices() {
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter((row) => {
-      const status = row.invoice?.status ?? "unknown";
+      const { invoice } = row;
+      const status = row.paymentStatus ?? invoice.status;
       const matchesSearch =
         !term ||
-        `${row.invoiceNumber} ${row.userName} ${status} ${row.error ?? ""}`
+        `${invoice.invoiceNumber} ${invoice.invoiceName ?? ""} ${row.userName} ${invoice.customerEmail ?? ""} ${status} ${invoice.status}`
           .toLowerCase()
           .includes(term);
       return matchesSearch && (statusFilter === "all" || status === statusFilter);
@@ -159,12 +153,10 @@ export default function Invoices() {
   const counts = useMemo(
     () => ({
       total: rows.length,
-      successful: rows.filter((row) => row.invoice?.status === "successful").length,
-      pending: rows.filter((row) => row.invoice?.status === "pending").length,
-      attention: rows.filter(
-        (row) =>
-          !row.invoice ||
-          ["failed", "canceled", "refunded", "unknown"].includes(row.invoice.status),
+      paid: rows.filter((row) => row.invoice.status === "successful").length,
+      refunded: rows.filter((row) => row.invoice.status === "refunded").length,
+      linksUnavailable: rows.filter(
+        (row) => !row.invoice.hostedInvoiceUrl && !row.invoice.downloadUrl,
       ).length,
     }),
     [rows],
@@ -182,7 +174,7 @@ export default function Invoices() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-myinder-navy">Invoices</h1>
             <p className="mt-1 text-sm text-myinder-muted">
-              Invoice references and payment statuses linked to users.
+              Invoices, associated users, payment statuses, and Stripe links.
             </p>
           </div>
         </div>
@@ -212,13 +204,18 @@ export default function Invoices() {
           </div>
         </div>
       )}
+      {dataWarning && (
+        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Invoice records loaded with limited linked details: {dataWarning}
+        </p>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["All invoices", counts.total],
-          ["Successful", counts.successful],
-          ["Pending", counts.pending],
-          ["Needs attention", counts.attention],
+          ["Paid", counts.paid],
+          ["Refunded", counts.refunded],
+          ["Links unavailable", counts.linksUnavailable],
         ].map(([label, value]) => (
           <article key={label} className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-myinder-muted">{label}</p>
@@ -259,7 +256,7 @@ export default function Invoices() {
             <FileText size={42} className="mx-auto text-indigo-300" />
             <h2 className="mt-3 font-bold text-myinder-navy">No invoices found</h2>
             <p className="mt-1 text-sm text-myinder-muted">
-              Invoices appear here when user records include an invoice number.
+              Invoices appear here when they have been recorded by the payment service.
             </p>
           </div>
         ) : filteredRows.length === 0 ? (
@@ -273,30 +270,83 @@ export default function Invoices() {
                 <tr>
                   <th scope="col" className="px-5 py-4">Invoice number</th>
                   <th scope="col" className="px-5 py-4">User</th>
-                  <th scope="col" className="px-5 py-4">Payment status</th>
+                  <th scope="col" className="px-5 py-4">Payment / invoice status</th>
+                  <th scope="col" className="px-5 py-4">Invoice links</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.map((row) => {
-                  const status = row.invoice?.status ?? "unknown";
+                  const status = row.invoice.status;
                   const presentation = statusPresentation[status];
-                  const StatusIcon = presentation.Icon;
+                  const paymentPresentation =
+                    statusPresentation[row.paymentStatus ?? status];
+                  const PaymentIcon = paymentPresentation.Icon;
                   return (
-                    <tr key={row.invoiceNumber} className="border-t border-blue-50">
-                      <td className="px-5 py-4 font-mono font-semibold text-myinder-navy">
-                        {row.invoiceNumber}
-                      </td>
-                      <td className="px-5 py-4 font-medium text-myinder-navy">
-                        {row.userName || "User unavailable"}
+                    <tr key={row.id} className="border-t border-blue-50">
+                      <td className="px-5 py-4">
+                        <p className="font-mono font-semibold text-myinder-navy">
+                          {row.invoice.invoiceNumber || "Invoice number pending"}
+                        </p>
+                        {row.invoice.invoiceName && (
+                          <p className="mt-1 text-xs text-myinder-muted">{row.invoice.invoiceName}</p>
+                        )}
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${presentation.className}`}>
-                          <StatusIcon size={14} />
-                          {row.error ? "Unavailable" : presentation.label}
-                        </span>
-                        {row.error && (
-                          <p className="mt-1 max-w-sm text-xs text-rose-700">{row.error}</p>
+                        <p className="font-medium text-myinder-navy">{row.userName}</p>
+                        {row.invoice.customerEmail && row.userName !== row.invoice.customerEmail && (
+                          <p className="mt-1 text-xs text-myinder-muted">{row.invoice.customerEmail}</p>
                         )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-myinder-muted">Payment:</span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${paymentPresentation.className}`}>
+                            <PaymentIcon size={14} />
+                            {row.paymentStatus
+                              ? paymentPresentation.label
+                              : `${presentation.label} (invoice)`}
+                          </span>
+                        </div>
+                        {row.paymentStatus && row.paymentStatus !== status && (
+                          <p className="mt-1 text-xs text-myinder-muted">
+                            Invoice: {presentation.label}
+                          </p>
+                        )}
+                        {row.invoice.amountMinor !== undefined && row.invoice.currency && (
+                          <p className="mt-1 text-xs text-myinder-muted">
+                            {new Intl.NumberFormat(undefined, {
+                              style: "currency",
+                              currency: row.invoice.currency,
+                            }).format(row.invoice.amountMinor / 100)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          {row.invoice.hostedInvoiceUrl && (
+                            <a
+                              href={row.invoice.hostedInvoiceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 px-2.5 py-1.5 text-xs font-semibold text-myinder-blue hover:bg-blue-50"
+                            >
+                              <ExternalLink size={14} /> View
+                            </a>
+                          )}
+                          {row.invoice.downloadUrl && (
+                            <a
+                              href={row.invoice.downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 px-2.5 py-1.5 text-xs font-semibold text-myinder-blue hover:bg-blue-50"
+                            >
+                              <Download size={14} /> PDF
+                            </a>
+                          )}
+                          {!row.invoice.hostedInvoiceUrl && !row.invoice.downloadUrl && (
+                            <span className="text-xs text-myinder-muted">Links unavailable</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

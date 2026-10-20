@@ -4,6 +4,13 @@ import { adminApiFetch } from "./adminApiFetch";
 
 export interface UserInvoice {
   invoiceNumber: string;
+  invoiceId?: string;
+  invoiceName?: string;
+  userId?: string;
+  paymentId?: string;
+  customerEmail?: string;
+  hostedInvoiceUrl?: string;
+  downloadUrl?: string;
   status:
     | "successful"
     | "pending"
@@ -26,6 +33,31 @@ function asRecord(value: unknown): ApiRecord {
     !Array.isArray(value)
     ? (value as ApiRecord)
     : {};
+}
+
+function mapStatus(value: unknown): UserInvoice["status"] {
+  const status = String(value ?? "").toLowerCase();
+  if (
+    ["paid", "succeeded", "successful", "success", "completed"].includes(status)
+  ) {
+    return "successful";
+  }
+  if (
+    [
+      "pending",
+      "processing",
+      "requires_payment_method",
+      "requires_confirmation",
+      "requires_action",
+      "requires_capture",
+    ].includes(status)
+  ) {
+    return "pending";
+  }
+  if (["canceled", "cancelled", "void"].includes(status)) return "canceled";
+  if (["refunded", "partially_refunded"].includes(status)) return "refunded";
+  if (["failed", "declined", "payment_failed"].includes(status)) return "failed";
+  return "unknown";
 }
 
 function isUserInvoice(value: unknown): value is UserInvoice {
@@ -69,37 +101,7 @@ function mapInvoice(
       "",
   ).toLowerCase();
 
-  const status: UserInvoice["status"] =
-    [
-      "paid",
-      "succeeded",
-      "successful",
-      "success",
-      "completed",
-    ].includes(rawStatus)
-      ? "successful"
-      : [
-          "pending",
-          "processing",
-          "requires_payment_method",
-          "requires_action",
-          "requires_confirmation",
-        ].includes(rawStatus)
-        ? "pending"
-        : ["canceled", "cancelled", "void"].includes(rawStatus)
-          ? "canceled"
-          : [
-              "refunded",
-              "partially_refunded",
-            ].includes(rawStatus)
-            ? "refunded"
-            : [
-                "failed",
-                "declined",
-                "payment_failed",
-            ].includes(rawStatus)
-              ? "failed"
-              : "unknown";
+  const status = mapStatus(rawStatus);
 
   const rawAmount =
     invoice.amount_minor ??
@@ -144,6 +146,12 @@ function mapInvoice(
     data.invoice_number ??
     data.invoiceNumber ??
     data.number;
+  const rawTextField = (...values: unknown[]): string | undefined => {
+    const value = values.find(
+      (candidate) => typeof candidate === "string" && candidate.trim(),
+    );
+    return typeof value === "string" ? value.trim() : undefined;
+  };
 
   return {
     invoiceNumber:
@@ -152,6 +160,43 @@ function mapInvoice(
         ? rawInvoiceNumber.trim()
         : fallbackInvoiceNumber,
     status,
+    ...(rawTextField(invoice.id, record.id, data.id)
+      ? { invoiceId: rawTextField(invoice.id, record.id, data.id) }
+      : {}),
+    ...(rawTextField(invoice.invoice_name, record.invoice_name, data.invoice_name)
+      ? { invoiceName: rawTextField(invoice.invoice_name, record.invoice_name, data.invoice_name) }
+      : {}),
+    ...(rawTextField(invoice.user_id, record.user_id, data.user_id)
+      ? { userId: rawTextField(invoice.user_id, record.user_id, data.user_id) }
+      : {}),
+    ...(rawTextField(invoice.payment_id, record.payment_id, data.payment_id)
+      ? { paymentId: rawTextField(invoice.payment_id, record.payment_id, data.payment_id) }
+      : {}),
+    ...(rawTextField(invoice.customer_email, record.customer_email, data.customer_email)
+      ? { customerEmail: rawTextField(invoice.customer_email, record.customer_email, data.customer_email) }
+      : {}),
+    ...(rawTextField(invoice.hosted_invoice_url, record.hosted_invoice_url, data.hosted_invoice_url)
+      ? { hostedInvoiceUrl: rawTextField(invoice.hosted_invoice_url, record.hosted_invoice_url, data.hosted_invoice_url) }
+      : {}),
+    ...(rawTextField(
+      invoice.download_url,
+      invoice.invoice_pdf,
+      record.download_url,
+      record.invoice_pdf,
+      data.download_url,
+      data.invoice_pdf,
+    )
+      ? {
+          downloadUrl: rawTextField(
+            invoice.download_url,
+            invoice.invoice_pdf,
+            record.download_url,
+            record.invoice_pdf,
+            data.download_url,
+            data.invoice_pdf,
+          ),
+        }
+      : {}),
     ...(amountMinor !== undefined &&
     Number.isFinite(amountMinor)
       ? { amountMinor }
@@ -224,7 +269,9 @@ function getErrorMessage(
   payload: unknown,
   status: number,
 ): string {
-  const message = asRecord(payload).message;
+  const root = asRecord(payload);
+  const body = asRecord(root.response);
+  const message = root.message ?? body.message;
   if (
     Array.isArray(message) &&
     message.every((item) => typeof item === "string")
@@ -235,6 +282,97 @@ function getErrorMessage(
   return typeof message === "string" && message.trim()
     ? message
     : `Unable to load invoices (HTTP ${status}).`;
+}
+
+const INVOICE_LIST_PAGE_SIZE = 100;
+
+async function readPagedItems(
+  endpoint: string,
+  resource: string,
+): Promise<ApiRecord[]> {
+  const items: ApiRecord[] = [];
+  let page = 1;
+  let totalPages: number | undefined;
+
+  do {
+    const response = await adminApiFetch(
+      `${endpoint}?page=${page}&limit=${INVOICE_LIST_PAGE_SIZE}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      },
+    );
+    const payload = await readResponse(response);
+    if (!response.ok) {
+      throw new Error(getErrorMessage(payload, response.status));
+    }
+
+    const root = asRecord(payload);
+    const data = asRecord(root.data);
+    const pageItems = Array.isArray(root.items)
+      ? root.items
+      : Array.isArray(data.items)
+        ? data.items
+        : Array.isArray(payload)
+          ? payload
+          : null;
+    if (!pageItems) {
+      throw new Error(`The ${resource} API response did not contain an items array.`);
+    }
+    items.push(...pageItems.map(asRecord));
+
+    const rawTotalPages = root.total_pages ?? data.total_pages;
+    totalPages =
+      typeof rawTotalPages === "number" &&
+      Number.isInteger(rawTotalPages) &&
+      rawTotalPages >= 0
+        ? rawTotalPages
+        : undefined;
+    if (totalPages === undefined && pageItems.length < INVOICE_LIST_PAGE_SIZE) {
+      break;
+    }
+    page += 1;
+  } while (totalPages === undefined || page <= totalPages);
+
+  return items;
+}
+
+/**
+ * Fetch every invoice from the admin listing endpoint.
+ */
+export async function getInvoices(): Promise<UserInvoice[]> {
+  const invoices = await readPagedItems(getInvoicesEndpoint(), "invoices");
+  return invoices.map((invoice) => mapInvoice(invoice));
+}
+
+/**
+ * Fetch admin payment states keyed by payment ID; unlike customer status
+ * lookups, this route does not require per-checkout status tokens.
+ */
+export async function getAdminPaymentStatuses(): Promise<
+  Map<string, UserInvoice["status"]>
+> {
+  const invoicesEndpoint = new URL(
+    getInvoicesEndpoint(),
+    window.location.origin,
+  );
+  invoicesEndpoint.pathname = invoicesEndpoint.pathname.replace(
+    /\/invoices\/?$/,
+    "/payments",
+  );
+  const endpoint = import.meta.env.DEV
+    ? `${invoicesEndpoint.pathname}`
+    : invoicesEndpoint.toString().replace(/\/$/, "");
+  const payments = await readPagedItems(endpoint, "payments");
+
+  return new Map(
+    payments.flatMap((payment) => {
+      const id = payment.id;
+      if (typeof id !== "string" || !id.trim()) return [];
+      return [[id, mapStatus(payment.status)] as const];
+    }),
+  );
 }
 
 const pendingRequests = new Map<

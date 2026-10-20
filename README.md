@@ -48,7 +48,7 @@ The user-details modal can generate a 768 × 1024 PNG from any photo in that use
 
 The user details modal looks up the invoice number included on each user record with `GET /api/admin/invoices/:invoiceNumber`. Invoice number casing is preserved in the request path. Responses may be direct invoice objects or wrapped in `data`/`result`, and may include `amount_minor`, `currency`, `paid_at`, or a nested `payment` object. The lookup result is cached in local storage for two minutes.
 
-The admin Invoices tab uses those invoice numbers from the loaded user records and looks up each invoice through the same detail endpoint, with up to five requests in flight. It supports invoice/user search and status filtering. The API currently documents invoice-by-number lookup, not a bulk invoice-list endpoint, so invoices without a reference on a user record will not appear. Use Refresh invoices to bypass cached invoice details.
+The admin Invoices tab loads every page from `GET /api/admin/invoices?page=1&limit=100`, which is the authoritative invoice list and does not depend on invoice references appearing in user records. It matches invoice `user_id` values to user names and `payment_id` values to statuses from `GET /api/admin/payments`, then displays payment/invoice status, amount, and available hosted/PDF links with search and status filtering. The API currently lists persisted paid/refunded invoices; payments whose invoices are still processing are not part of this invoice list. The separate `GET /api/payments/:id` endpoint requires a customer status token and is not used by the administrator invoice list.
 
 ## Payment plan
 
