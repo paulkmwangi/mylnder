@@ -8,7 +8,6 @@ import { resolveImageUrl } from "../services/imageService";
 import InvoicePanel from "./InvoicePanel";
 import { useAdminAuthStore } from "../stores/adminAuthStore";
 import { getUniversities } from "../services/universitiesService";
-import { getPaymentInvoiceNumber } from "../services/paymentsService"
 import {
   generateAdminUserPoster,
   getPosterColor,
