@@ -1,5 +1,4 @@
 
-import { readLocalCache, writeLocalCache } from "./localCache";
 import { adminApiFetch } from "./adminApiFetch";
 
 export interface UserInvoice {
@@ -22,8 +21,6 @@ export interface UserInvoice {
   currency?: string;
   paidAt?: string;
 }
-
-const INVOICE_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
 
@@ -58,26 +55,6 @@ function mapStatus(value: unknown): UserInvoice["status"] {
   if (["refunded", "partially_refunded"].includes(status)) return "refunded";
   if (["failed", "declined", "payment_failed"].includes(status)) return "failed";
   return "unknown";
-}
-
-function isUserInvoice(value: unknown): value is UserInvoice {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const invoice = value as ApiRecord;
-
-  return (
-    typeof invoice.invoiceNumber === "string" &&
-    [
-      "successful",
-      "pending",
-      "failed",
-      "canceled",
-      "refunded",
-      "unknown",
-    ].includes(String(invoice.status))
-  );
 }
 
 function mapInvoice(
@@ -385,7 +362,6 @@ const pendingRequests = new Map<
  */
 export function getInvoice(
   invoiceNumber: string,
-  options: { refresh?: boolean } = {},
 ): Promise<UserInvoice> {
   const requestedInvoiceNumber = invoiceNumber.trim();
   const cacheIdentity = requestedInvoiceNumber;
@@ -394,26 +370,6 @@ export function getInvoice(
     return Promise.reject(
       new Error("Invoice number is required."),
     );
-  }
-
-  const cacheKey =
-    `mylnder-admin-invoice-v1-${cacheIdentity}`;
-
-  if (options.refresh) {
-    try {
-      localStorage.removeItem(cacheKey);
-    } catch {
-      console.warn("Unable to clear invoice cache.");
-    }
-  } else {
-    const cachedInvoice = readLocalCache(
-      cacheKey,
-      isUserInvoice,
-    );
-
-    if (cachedInvoice) {
-      return Promise.resolve(cachedInvoice);
-    }
   }
 
   const existingRequest = pendingRequests.get(
@@ -448,12 +404,6 @@ export function getInvoice(
     const invoice = mapInvoice(
       payload,
       requestedInvoiceNumber,
-    );
-
-    writeLocalCache(
-      cacheKey,
-      invoice,
-      INVOICE_CACHE_TTL_MS,
     );
 
     return invoice;

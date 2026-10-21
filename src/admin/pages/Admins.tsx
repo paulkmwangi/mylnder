@@ -208,7 +208,7 @@ const currentAdmin = useAdminAuthStore((state) => state.admin);
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name or email"
               aria-label="Search admins"
-              className="w-full rounded-xl border border-blue-100 bg-white py-2.5 pl-10 pr-3 text-sm text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              className="w-full rounded-xl border border-blue-100 bg-white py-2.5 pl-10 pr-3 text-base text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 sm:text-sm"
             />
           </label>
         </div>

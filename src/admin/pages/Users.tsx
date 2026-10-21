@@ -13,7 +13,7 @@ type Context = { search: string; university: string };
 
 export default function Users() {
   const { search, university } = useOutletContext<Context>();
-  const { users, loading, error } = useUsers();
+  const { users, hasData, loading, error } = useUsers();
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<SavedUser | null>(null);
   const pageSize = 12;
@@ -36,11 +36,12 @@ export default function Users() {
   const visibleUsers = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   if (loading) return <LoadingState label="Loading saved users..." />;
-  if (error) return <p className="py-10 text-center text-red-600">{error}</p>;
+  if (error && !hasData) return <p className="py-10 text-center text-red-600">{error}</p>;
 
   return (
     <>
       <main>
+        {error && <p role="alert" className="mb-4 text-sm text-amber-700">Showing cached users; refresh failed: {error}</p>}
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-myinder-navy sm:text-[34px]">Saved Users</h1>

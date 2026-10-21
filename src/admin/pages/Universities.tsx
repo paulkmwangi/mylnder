@@ -227,7 +227,7 @@ export default function Universities() {
               Profile color
             </label>
 
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-3">
   <input
     id="university-custom-color"
     name="custom_color"
@@ -258,10 +258,10 @@ export default function Universities() {
     maxLength={7}
     pattern="^#[0-9A-Fa-f]{6}$"
     title="Enter a valid HEX color code, e.g. #102A43"
-    className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm uppercase outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+    className="w-28 rounded-md border border-gray-300 px-3 py-2 text-base uppercase outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:text-sm"
   />
 
-  <span className="text-sm text-gray-500">
+  <span className="basis-full text-sm text-gray-500 sm:basis-auto">
     Choose or enter a color
   </span>
 </div>

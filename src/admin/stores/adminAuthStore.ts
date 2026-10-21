@@ -4,7 +4,9 @@ import {
   loginAdmin,
   type AdminAccount,
 } from "../services/adminAuthService";
-import { clearAdminCaches } from "../services/localCache";
+import { queryClient } from "../../app/queryClient";
+import { clearPersistedImageQueries } from "../../app/imageQueryPersister";
+import { userQueryKeys } from "../queries/userQueryKeys";
 
 interface AdminAuthState {
   accessToken: string | null;
@@ -22,7 +24,13 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       admin: null,
       signIn: async (email, password) => {
         const session = await loginAdmin(email, password);
-        clearAdminCaches();
+        const previousAdminId = useAdminAuthStore.getState().admin?.id;
+        queryClient.removeQueries({ queryKey: userQueryKeys.all });
+        if (previousAdminId && previousAdminId !== session.admin.id) {
+          void clearPersistedImageQueries(previousAdminId).catch((error: unknown) => {
+            console.error("Unable to clear previous account image queries.", error);
+          });
+        }
         set({
           accessToken: session.accessToken,
           expiresAt: session.expiresAt,
@@ -30,7 +38,13 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         });
       },
       signOut: () => {
-        clearAdminCaches();
+        const adminId = useAdminAuthStore.getState().admin?.id;
+        queryClient.removeQueries({ queryKey: userQueryKeys.all });
+        if (adminId) {
+          void clearPersistedImageQueries(adminId).catch((error: unknown) => {
+            console.error("Unable to clear persisted image queries on sign-out.", error);
+          });
+        }
         set({ accessToken: null, expiresAt: null, admin: null });
       },
     }),

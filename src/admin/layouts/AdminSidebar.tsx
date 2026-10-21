@@ -46,7 +46,7 @@ export default function AdminSidebar({ open, onClose }: Props) {
         onClick={onClose}
         className={`fixed inset-0 z-30 bg-slate-900/40 transition-opacity lg:hidden ${open ? "visible opacity-100" : "invisible opacity-0"}`}
       />
-      <aside id="admin-sidebar" className={`fixed inset-y-0 left-0 z-40 flex w-[min(85vw,272px)] flex-col border-r border-blue-100 bg-white px-3 py-6 shadow-xl transition-transform duration-200 lg:z-20 lg:w-[272px] lg:translate-x-0 lg:shadow-none ${open ? "visible translate-x-0" : "invisible -translate-x-full"} lg:visible`}>
+      <aside id="admin-sidebar" className={`safe-area-inset-y fixed inset-y-0 left-0 z-40 flex w-[min(85vw,272px)] flex-col border-r border-blue-100 bg-white px-3 py-6 shadow-xl transition-transform duration-200 lg:z-20 lg:w-[272px] lg:translate-x-0 lg:shadow-none ${open ? "visible translate-x-0" : "invisible -translate-x-full"} lg:visible`}>
         <div className="flex items-center justify-between px-3">
           <Logo />
           <button type="button" onClick={onClose} aria-label="Close navigation menu" className="rounded-lg p-2 text-myinder-navy hover:bg-blue-50 lg:hidden">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Clock3, Download, ExternalLink, FileText, RefreshCw, XCircle } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -8,7 +9,9 @@ import {
   getInvoices,
   type UserInvoice,
 } from "../services/invoicesService";
-import { getUsers } from "../services/usersService";
+import { useAdminAuthStore } from "../stores/adminAuthStore";
+import { USER_DATA_STALE_TIME, userListQueryOptions } from "../hooks/useUsers";
+import type { QueryClient } from "@tanstack/react-query";
 
 interface InvoiceRow {
   id: string;
@@ -60,10 +63,19 @@ interface InvoiceListResult {
   dataWarning: string;
 }
 
-async function loadInvoiceRows(refresh: boolean): Promise<InvoiceListResult> {
+async function loadInvoiceRows(
+  refresh: boolean,
+  adminId: string | undefined,
+  queryClient: QueryClient,
+): Promise<InvoiceListResult> {
   const [invoices, userResult, paymentResult] = await Promise.all([
     getInvoices(),
-    getUsers({ refresh }).then(
+    (adminId
+      ? queryClient.fetchQuery({
+          ...userListQueryOptions(adminId),
+          staleTime: refresh ? 0 : USER_DATA_STALE_TIME,
+        })
+      : Promise.reject(new Error("Unable to identify the signed-in admin."))).then(
       (users) => ({ users, error: "" }),
       (cause: unknown) => ({
         users: [],
@@ -103,6 +115,8 @@ async function loadInvoiceRows(refresh: boolean): Promise<InvoiceListResult> {
 }
 
 export default function Invoices() {
+  const queryClient = useQueryClient();
+  const adminId = useAdminAuthStore((state) => state.admin?.id);
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -117,7 +131,7 @@ export default function Invoices() {
     setError("");
 
     try {
-      const result = await loadInvoiceRows(refresh);
+      const result = await loadInvoiceRows(refresh, adminId, queryClient);
       setRows(result.rows);
       setDataWarning(result.dataWarning);
     } catch (cause: unknown) {
@@ -130,7 +144,7 @@ export default function Invoices() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [adminId, queryClient]);
 
   useEffect(() => {
     void loadInvoices();
@@ -242,7 +256,7 @@ export default function Invoices() {
             id="invoice-status-filter"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-xl border border-blue-100 bg-white px-3 py-3 text-sm text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+            className="rounded-xl border border-blue-100 bg-white px-3 py-3 text-base text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 sm:text-sm"
           >
             <option value="all">All statuses</option>
             {Object.entries(statusPresentation).map(([status, presentation]) => (

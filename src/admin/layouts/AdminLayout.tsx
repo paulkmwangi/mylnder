@@ -33,7 +33,7 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-[#fbfdff]">
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="min-h-screen lg:pl-[272px]">
+      <div className="min-h-screen min-w-0 lg:pl-[272px]">
         <AdminHeader
           search={search}
           onSearch={setSearch}

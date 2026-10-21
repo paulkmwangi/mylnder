@@ -52,9 +52,12 @@ export default function InvoicePanel({ invoiceNumber }: { invoiceNumber?: string
             <FileText size={18} className="text-myinder-blue" />
             Payment invoice
           </h3>
-          <p className="mt-1 text-xs text-myinder-muted">
-            {invoiceNumber ? `Invoice ${invoiceNumber}` : "No invoice reference is available for this user."}
-          </p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-xs font-medium text-myinder-muted">Invoice number</span>
+            <span className="rounded bg-blue-50 px-2 py-1 font-mono text-sm font-semibold text-myinder-navy">
+              {invoiceNumber || "Not available"}
+            </span>
+          </div>
         </div>
         {invoice && (
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${

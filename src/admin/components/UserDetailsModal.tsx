@@ -8,11 +8,14 @@ import { resolveImageUrl } from "../services/imageService";
 import InvoicePanel from "./InvoicePanel";
 import { useAdminAuthStore } from "../stores/adminAuthStore";
 import { getUniversities } from "../services/universitiesService";
+import { getPaymentInvoiceNumber } from "../services/paymentsService"
 import {
   generateAdminUserPoster,
   getPosterColor,
   type PosterProgress,
 } from "../services/posterService";
+import { getInvoices } from "../services/invoicesService";
+
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
@@ -26,6 +29,65 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   const [posterWarning, setPosterWarning] = useState("");
   const posterUrlRef = useRef<string | null>(null);
   const posterGenerationRef = useRef(0);
+  const [invoiceNumber, setInvoiceNumber] = useState(
+  user?.invoiceNumber ?? "",
+);
+const [invoiceLoading, setInvoiceLoading] = useState(false);
+const [invoiceError, setInvoiceError] = useState("");
+ 
+
+useEffect(() => {
+  let cancelled = false;
+
+  setInvoiceNumber(user?.invoiceNumber ?? "");
+  setInvoiceError("");
+
+  if (!user) {
+    setInvoiceLoading(false);
+    return;
+  }
+
+  // Capture the non-null user for the async function.
+  const selectedUser = user;
+
+  async function loadInvoiceNumber() {
+    setInvoiceLoading(true);
+
+    try {
+      const invoices = await getInvoices();
+
+      const matchingInvoice = invoices.find(
+        (invoice) => invoice.userId === selectedUser.id,
+      );
+
+      if (!cancelled) {
+        setInvoiceNumber(
+          matchingInvoice?.invoiceNumber ??
+            selectedUser.invoiceNumber ??
+            "",
+        );
+      }
+    } catch (error: unknown) {
+      if (!cancelled) {
+        setInvoiceError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load the invoice number.",
+        );
+      }
+    } finally {
+      if (!cancelled) {
+        setInvoiceLoading(false);
+      }
+    }
+  }
+
+  void loadInvoiceNumber();
+
+  return () => {
+    cancelled = true;
+  };
+}, [user?.id, user?.invoiceNumber]);
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +108,8 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
       document.body.style.overflow = "";
     };
   }, [user, onClose, previewIndex]);
+
+ 
 
   useEffect(() => {
     setError("");
@@ -69,8 +133,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
       }
     };
   }, [user?.id]);
-
-  if (!user) return null;
+   if (!user) return null;
 
   const posterPhotos = Array.from(
     new Set([...(user.posterPhotoUrl ? [user.posterPhotoUrl] : []), ...user.images]),
@@ -197,8 +260,8 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
     .replace(/^-|-$/g, "") || "user"}-poster.png`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-800/50 p-3 backdrop-blur-[2px] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="modal-user-name" className="relative flex max-h-[88vh] w-full max-w-[805px] flex-col overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl">
+    <div className="safe-area-padding fixed inset-0 z-50 flex items-center justify-center bg-slate-800/50 p-3 backdrop-blur-[2px] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="modal-user-name" className="mobile-dialog-height relative flex w-full min-w-0 max-w-[805px] flex-col overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl">
         <button onClick={onClose} aria-label="Close user details" className="absolute right-4 top-4 z-10 rounded-lg p-1.5 text-myinder-blue transition hover:bg-blue-50"><X size={24}/></button>
         <div className="flex shrink-0 items-center gap-5 border-b border-blue-100 px-6 py-7 pr-14 sm:px-8">
           <ColorfulIcon Icon={University} tone="orange" size={40} className="h-20 w-20 rounded-full" />
@@ -209,7 +272,7 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
             <p className="mt-2 flex items-center gap-3 text-sm text-myinder-muted sm:text-base"><ColorfulIcon Icon={Instagram} tone="pink" size={21} badge={false}/>{user.instagram}</p>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5 sm:px-8">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-5 sm:px-8">
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
             <section className="rounded-lg bg-blue-50/70 p-4">
               <h3 className="text-sm font-bold text-myinder-navy">Bio</h3>
@@ -220,7 +283,21 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
               <p className="mt-2 text-sm text-myinder-muted">{user.song || "No song selected."}</p>
             </section>
           </div>
-          <InvoicePanel invoiceNumber={user.invoiceNumber} />
+          <div>
+  <InvoicePanel invoiceNumber={invoiceNumber} />
+
+  {invoiceLoading && (
+    <p className="mt-2 text-sm text-slate-500">
+      Loading invoice number...
+    </p>
+  )}
+
+  {invoiceError && (
+    <p role="alert" className="mt-2 text-sm text-red-600">
+      {invoiceError}
+    </p>
+  )}
+</div>
           <section className="mb-6 rounded-lg border border-blue-100 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

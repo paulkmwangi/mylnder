@@ -1,5 +1,4 @@
 import type { SavedUser } from "../types/admin.types";
-import { readLocalCache, writeLocalCache } from "./localCache";
 import { adminApiFetch } from "./adminApiFetch";
 
 const ADMIN_USERS_API_URL =
@@ -7,8 +6,6 @@ const ADMIN_USERS_API_URL =
 const ADMIN_API_ORIGIN =
   import.meta.env.VITE_ADMIN_API_ORIGIN ||
   new URL(ADMIN_USERS_API_URL, window.location.origin).origin;
-const USERS_CACHE_KEY = "mylnder-admin-users-v2";
-const USERS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type ApiRecord = Record<string, unknown>;
 
@@ -96,20 +93,6 @@ function mapUser(value: unknown, index: number): SavedUser {
   };
 }
 
-function isSavedUserList(value: unknown): value is SavedUser[] {
-  return Array.isArray(value) && value.every((item) =>
-    item !== null &&
-    typeof item === "object" &&
-    typeof item.id === "string" &&
-    typeof item.name === "string" &&
-    typeof item.university === "string" &&
-    typeof item.major === "string" &&
-    typeof item.instagram === "string" &&
-    Array.isArray(item.images) &&
-    item.images.every((image: unknown) => typeof image === "string"),
-  );
-}
-
 interface UsersPage {
   rows: unknown[];
   totalPages?: number;
@@ -172,38 +155,6 @@ async function loadUsers(): Promise<SavedUser[]> {
   return rows.map(mapUser);
 }
 
-let usersRequest: Promise<SavedUser[]> | null = null;
-
-export function getUsers(options: { refresh?: boolean } = {}): Promise<SavedUser[]> {
-  if (options.refresh) {
-    try {
-      localStorage.removeItem(USERS_CACHE_KEY);
-    } catch {
-      console.warn("Unable to clear user cache.");
-    }
-  }
-
-  const cachedUsers = readLocalCache(USERS_CACHE_KEY, isSavedUserList);
-  if (cachedUsers && !options.refresh) return Promise.resolve(cachedUsers);
-  if (usersRequest) return usersRequest;
-
-  const request = loadUsers().then((users) => {
-    writeLocalCache(USERS_CACHE_KEY, users, USERS_CACHE_TTL_MS);
-    return users;
-  });
-  usersRequest = request;
-  void request.then(
-    () => {
-      if (usersRequest === request) usersRequest = null;
-    },
-    () => {
-      if (usersRequest === request) usersRequest = null;
-    },
-  );
-  return request;
-}
-
-export async function getUserById(id: string): Promise<SavedUser | undefined> {
-  const users = await getUsers();
-  return users.find((user) => user.id === id);
+export function getUsers(): Promise<SavedUser[]> {
+  return loadUsers();
 }

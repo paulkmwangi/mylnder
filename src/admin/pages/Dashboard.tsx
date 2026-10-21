@@ -76,7 +76,7 @@ function getRegistrationBuckets(users: SavedUser[], periodDays: PeriodDays): Reg
 }
 
 export default function Dashboard() {
-  const { users, loading, error } = useUsers();
+  const { users, hasData, loading, error } = useUsers();
   const [periodDays, setPeriodDays] = useState<PeriodDays>(30);
   const universityCounts = useMemo(() => getUniversityCounts(users), [users]);
   const universityCount = useMemo(
@@ -93,10 +93,11 @@ export default function Dashboard() {
   const hasRegistrationDates = users.some((user) => user.createdAt && Number.isFinite(new Date(user.createdAt).getTime()));
 
   if (loading) return <LoadingState />;
-  if (error) return <p role="alert" className="py-10 text-center text-red-600">{error}</p>;
+  if (error && !hasData) return <p role="alert" className="py-10 text-center text-red-600">{error}</p>;
 
   return (
     <main>
+      {error && <p role="alert" className="mb-4 text-sm text-amber-700">Showing cached users; refresh failed: {error}</p>}
       <div className="mb-7">
         <h1 className="text-3xl font-extrabold text-myinder-navy">Overview</h1>
         <p className="mt-1 text-sm text-myinder-muted">Welcome to your mylnder campus community dashboard.</p>
