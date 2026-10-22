@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { University, GraduationCap, Instagram } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import type { SavedUser } from "../types/admin.types";
 import { useUsers } from "../hooks/useUsers";
+import { useAdminAuthStore } from "../stores/adminAuthStore";
+import { getAdminPaymentStatuses, getInvoices, type UserInvoice } from "../services/invoicesService";
 import LoadingState from "../../components/shared/LoadingState";
 import UserDetailsModal from "../components/UserDetailsModal";
 import Pagination from "../components/Pagination";
@@ -10,19 +13,56 @@ import ColorfulIcon from "../components/ColorfulIcon";
 import ResolvedImage from "../components/ResolvedImage";
 
 type Context = { search: string; university: string };
+type PaymentFilter = "all" | "paid" | "unpaid";
+type PostingFilter = "all" | "waiting" | "posted";
+
+async function getUserPaymentStatuses(): Promise<Map<string, UserInvoice["status"]>> {
+  const [invoices, paymentStatuses] = await Promise.all([
+    getInvoices(),
+    getAdminPaymentStatuses(),
+  ]);
+  const statuses = new Map<string, UserInvoice["status"]>();
+
+  for (const invoice of invoices) {
+    if (!invoice.userId) continue;
+    const linkedPaymentStatus = invoice.paymentId
+      ? paymentStatuses.get(invoice.paymentId)
+      : undefined;
+    const status =
+      linkedPaymentStatus && linkedPaymentStatus !== "unknown"
+        ? linkedPaymentStatus
+        : invoice.status;
+    const current = statuses.get(invoice.userId);
+    if (status === "successful" || !current || current === "unknown") {
+      statuses.set(invoice.userId, status);
+    }
+  }
+
+  return statuses;
+}
 
 export default function Users() {
   const { search, university } = useOutletContext<Context>();
   const { users, hasData, loading, error } = useUsers();
+  const adminId = useAdminAuthStore((state) => state.admin?.id);
+  const accessToken = useAdminAuthStore((state) => state.accessToken);
+  const paymentQuery = useQuery({
+    queryKey: ["admin-user-data", adminId ?? "", "payment-statuses"],
+    queryFn: getUserPaymentStatuses,
+    enabled: Boolean(adminId && accessToken),
+    staleTime: 60_000,
+  });
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<SavedUser | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [postingFilter, setPostingFilter] = useState<PostingFilter>("waiting");
   const pageSize = 12;
 
   useEffect(() => {
     setPage(1);
-  }, [search, university]);
+  }, [search, university, paymentFilter, postingFilter]);
 
-  const filtered = useMemo(() => {
+  const matchingUsers = useMemo(() => {
     const term = search.trim().toLowerCase();
     return users.filter((user) => {
       const matchesSearch = !term || `${user.name} ${user.university} ${user.major} ${user.instagram} ${user.bio ?? ""} ${user.song ?? ""} ${user.invoiceNumber ?? ""}`.toLowerCase().includes(term);
@@ -30,6 +70,26 @@ export default function Users() {
       return matchesSearch && matchesUniversity;
     });
   }, [users, search, university]);
+
+  const paymentStatuses = paymentQuery.data;
+  const paidCount = matchingUsers.filter(
+    (user) => paymentStatuses?.get(user.id) === "successful",
+  ).length;
+  const unpaidCount = paymentStatuses
+    ? matchingUsers.length - paidCount
+    : 0;
+  const filtered = matchingUsers.filter((user) => {
+    const matchesPayment =
+      paymentFilter === "all" ||
+      (paymentFilter === "paid"
+        ? paymentStatuses?.get(user.id) === "successful"
+        : Boolean(paymentStatuses) &&
+          paymentStatuses?.get(user.id) !== "successful");
+    const matchesPosting =
+      postingFilter === "all" ||
+      (postingFilter === "posted" ? user.isPosted : !user.isPosted);
+    return matchesPayment && matchesPosting;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -49,6 +109,64 @@ export default function Users() {
           </div>
           <p className="pb-1 text-sm font-medium text-myinder-muted">Total Users: {users.length}</p>
         </div>
+
+        <section className="mb-5 flex flex-wrap gap-x-8 gap-y-4 rounded-xl border border-blue-100 bg-white p-4">
+          <div>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-myinder-muted">Payment</h2>
+            <div className="flex flex-wrap gap-2">
+              {([
+                ["all", "All users"],
+                ["paid", `Successful (${paidCount})`],
+                ["unpaid", `Unpaid (${unpaidCount})`],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPaymentFilter(value)}
+                  disabled={value !== "all" && !paymentStatuses}
+                  aria-pressed={paymentFilter === value}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-50 ${
+                    paymentFilter === value
+                      ? "bg-myinder-blue text-white"
+                      : "bg-blue-50 text-myinder-navy hover:bg-blue-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-myinder-muted">Posting</h2>
+            <div className="flex flex-wrap gap-2">
+              {([
+                ["waiting", `Waiting to post (${matchingUsers.filter((user) => !user.isPosted).length})`],
+                ["posted", `Successfully posted (${matchingUsers.filter((user) => user.isPosted).length})`],
+                ["all", "All posting statuses"],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPostingFilter(value)}
+                  aria-pressed={postingFilter === value}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    postingFilter === value
+                      ? "bg-myinder-blue text-white"
+                      : "bg-blue-50 text-myinder-navy hover:bg-blue-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+        {paymentQuery.isError && (
+          <p role="alert" className="mb-4 text-sm text-amber-700">
+            Unable to load payment statuses; payment filters are unavailable.
+            {paymentQuery.error instanceof Error ? ` ${paymentQuery.error.message}` : ""}
+          </p>
+        )}
 
         {visibleUsers.length ? <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 2xl:grid-cols-4">
           {visibleUsers.map((user) => (

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Download, Instagram, University, GraduationCap, X, LoaderCircle, Music2, ChevronLeft, ChevronRight, Eye, ImagePlus, RefreshCw, Check } from "lucide-react";
 import JSZip from "jszip";
 import type { SavedUser } from "../types/admin.types";
@@ -15,6 +16,7 @@ import {
 } from "../services/posterService";
 import { getInvoices } from "../services/invoicesService";
 import { updatePostingStatus } from "../services/postingStatus service";
+import { userQueryKeys } from "../queries/userQueryKeys";
 
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
@@ -36,6 +38,8 @@ const [invoiceError, setInvoiceError] = useState("");
 const [isPosted, setIsPosted] = useState(false);
 const [postingStatusLoading, setPostingStatusLoading] = useState(false);
 const [postingStatusError, setPostingStatusError] = useState("");
+const adminId = useAdminAuthStore((state) => state.admin?.id);
+const queryClient = useQueryClient();
 
 const handlePostingStatusChange = async () => {
   if (postingStatusLoading || !user) return;
@@ -46,6 +50,24 @@ const handlePostingStatusChange = async () => {
   try {
     const result = await updatePostingStatus(user.id, !isPosted);
     setIsPosted(result.is_posted);
+    if (adminId) {
+      queryClient.setQueryData<SavedUser[]>(
+        userQueryKeys.users(adminId),
+        (cachedUsers) =>
+          cachedUsers?.map((cachedUser) =>
+            cachedUser.id === user.id
+              ? { ...cachedUser, isPosted: result.is_posted }
+              : cachedUser,
+          ),
+      );
+      queryClient.setQueryData<SavedUser | undefined>(
+        userQueryKeys.user(adminId, user.id),
+        (cachedUser) =>
+          cachedUser
+            ? { ...cachedUser, isPosted: result.is_posted }
+            : cachedUser,
+      );
+    }
   } catch (error) {
     setPostingStatusError(
       error instanceof Error
@@ -57,6 +79,10 @@ const handlePostingStatusChange = async () => {
   }
 };
  
+useEffect(() => {
+  setIsPosted(user?.isPosted ?? false);
+  setPostingStatusError("");
+}, [user?.id, user?.isPosted]);
 
 useEffect(() => {
   let cancelled = false;

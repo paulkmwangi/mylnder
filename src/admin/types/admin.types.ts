@@ -9,6 +9,7 @@ export interface SavedUser {
   song?: string;
   createdAt?: string;
   invoiceNumber?: string;
+  isPosted: boolean;
   posterPhotoUrl?: string;
   images: string[];
 }

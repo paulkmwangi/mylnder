@@ -47,6 +47,13 @@ function getPhotoUrl(value: unknown): string | null {
   return import.meta.env.DEV ? imagePath : `${ADMIN_API_ORIGIN}${imagePath}`;
 }
 
+function getPostingStatus(record: ApiRecord): boolean {
+  const value = record.is_posted ?? record.isPosted ?? record.posted;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return false;
+}
+
 function mapUser(value: unknown, index: number): SavedUser {
   const record = asRecord(value);
   const school = asRecord(record.school ?? record.university);
@@ -88,6 +95,7 @@ function mapUser(value: unknown, index: number): SavedUser {
     song: firstText(record, ["song", "song_option", "song_choice", "song_selection", "selected_song"]),
     createdAt: firstText(record, ["created_at", "createdAt"]),
     ...(invoiceNumber ? { invoiceNumber } : {}),
+    isPosted: getPostingStatus(record),
     ...(posterPhotoUrl ? { posterPhotoUrl } : {}),
     images: photos.map(getPhotoUrl).filter((url): url is string => Boolean(url)),
   };

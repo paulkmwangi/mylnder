@@ -35,7 +35,7 @@ const photoSets = {
   ]
 };
 
-const records: Omit<SavedUser, "images">[] = [
+const records: Omit<SavedUser, "images" | "isPosted">[] = [
   { id: "emma-rossi", name: "Emma Rossi", university: "University of Amsterdam", major: "Computer Science", instagram: "@emma.rossi" },
   { id: "lukas-jensen", name: "Lukas Jensen", university: "University of Copenhagen", major: "Data Science", instagram: "@lukas.jensen" },
   { id: "sofia-martinez", name: "Sofia Martínez", university: "University of Barcelona", major: "Biotechnology", instagram: "@sofia.martinez" },
@@ -66,5 +66,6 @@ const sets = [photoSets.amsterdam, photoSets.copenhagen, photoSets.barcelona, ph
 
 export const mockUsers: SavedUser[] = records.map((user, index) => ({
   ...user,
+  isPosted: false,
   images: [...sets[index % sets.length]]
 }));
