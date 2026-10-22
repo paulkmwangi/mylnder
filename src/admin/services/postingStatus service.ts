@@ -22,9 +22,10 @@ export async function updatePostingStatus(
     );
   }
 
-  const baseUrl = `${API_ORIGIN.replace(/\/+$/, "")}/${USERS_API_PATH
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "")}`;
+ const baseUrl = new URL(
+  USERS_API_PATH.replace(/^\/+/, ""),
+  `${API_ORIGIN.replace(/\/+$/, "")}/`,
+).toString().replace(/\/+$/, "");
 
   const response = await fetch(
     `${baseUrl}/${encodeURIComponent(userId)}/posting-status`,
