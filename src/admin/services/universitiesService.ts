@@ -8,13 +8,20 @@ export interface UniversityRecord {
   customColor?: string;
 }
 
-const USERS_API_URL = import.meta.env.VITE_ADMIN_USERS_API_URL;
+const USERS_API_URL =
+  import.meta.env.VITE_ADMIN_USERS_API_URL ?? "";
 
 const UNIVERSITIES_API_URL =
   import.meta.env.VITE_ADMIN_UNIVERSITIES_API_URL ||
   USERS_API_URL.replace(/\/users\/?$/, "/Schools");
+
 const UNIVERSITIES_CACHE_TTL_MS = 60_000;
-let universitiesCache: { rows: UniversityRecord[]; expiresAt: number } | null = null;
+
+let universitiesCache: {
+  rows: UniversityRecord[];
+  expiresAt: number;
+} | null = null;
+
 let universitiesRequest: Promise<UniversityRecord[]> | null = null;
 
 type ApiRecord = Record<string, unknown>;
@@ -27,7 +34,8 @@ function asRecord(value: unknown): ApiRecord {
 
 function getErrorMessage(payload: unknown): string | undefined {
   const body = asRecord(payload);
-  const message = body.message ?? asRecord(body.response).message;
+  const message =
+    body.message ?? asRecord(body.response).message;
 
   if (typeof message === "string" && message.trim()) {
     return message;
@@ -35,7 +43,8 @@ function getErrorMessage(payload: unknown): string | undefined {
 
   if (Array.isArray(message)) {
     const messages = message.filter(
-      (item): item is string => typeof item === "string"
+      (item): item is string =>
+        typeof item === "string"
     );
 
     if (messages.length) {
@@ -46,7 +55,9 @@ function getErrorMessage(payload: unknown): string | undefined {
   return undefined;
 }
 
-async function readPayload(response: Response): Promise<unknown> {
+async function readPayload(
+  response: Response
+): Promise<unknown> {
   const text = await response.text();
 
   if (!text) return {};
@@ -61,10 +72,22 @@ async function readPayload(response: Response): Promise<unknown> {
 function mapUniversity(value: unknown): UniversityRecord {
   const record = asRecord(value);
 
-  const id = record.id ?? record.university_id ?? record.uuid;
-  const name = record.name ?? record.university_name;
-  const profileName = record.profile_name ?? record.profileName;
-  const customColor = record.custom_color ?? record.customColor;
+  const id =
+    record.id ??
+    record.university_id ??
+    record.school_id ??
+    record.uuid;
+
+  const name =
+    record.name ??
+    record.university_name ??
+    record.school_name;
+
+  const profileName =
+    record.profile_name ?? record.profileName;
+
+  const customColor =
+    record.custom_color ?? record.customColor;
 
   if (
     (typeof id !== "string" && typeof id !== "number") ||
@@ -72,7 +95,7 @@ function mapUniversity(value: unknown): UniversityRecord {
     !name.trim()
   ) {
     throw new Error(
-      "The universities API returned an invalid university."
+      "The Schools API returned a record without a valid ID or name."
     );
   }
 
@@ -87,39 +110,110 @@ function mapUniversity(value: unknown): UniversityRecord {
       : {}),
   };
 }
-  
 
-export async function getUniversities(): Promise<UniversityRecord[]> {
-  if (universitiesCache && universitiesCache.expiresAt > Date.now()) {
+function extractUniversityRows(
+  payload: unknown
+): unknown[] | undefined {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const body = asRecord(payload);
+
+  // Check common collection property names.
+  const keys = [
+    "universities",
+    "schools",
+    "items",
+    "results",
+  ];
+
+  for (const key of keys) {
+    if (Array.isArray(body[key])) {
+      return body[key] as unknown[];
+    }
+  }
+
+  // Check common response wrappers, including nested data.
+  for (const key of ["data", "result", "response"]) {
+    const nested = body[key];
+
+    if (Array.isArray(nested)) {
+      return nested;
+    }
+
+    const nestedRecord = asRecord(nested);
+
+    for (const collectionKey of keys) {
+      if (Array.isArray(nestedRecord[collectionKey])) {
+        return nestedRecord[collectionKey] as unknown[];
+      }
+    }
+
+    // Support another level of nesting, such as data.data.
+    const deeper = asRecord(nestedRecord.data);
+
+    for (const collectionKey of keys) {
+      if (Array.isArray(deeper[collectionKey])) {
+        return deeper[collectionKey] as unknown[];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export async function getUniversities(): Promise<
+  UniversityRecord[]
+> {
+  if (
+    universitiesCache &&
+    universitiesCache.expiresAt > Date.now()
+  ) {
     return universitiesCache.rows;
   }
-  if (universitiesRequest) return universitiesRequest;
+
+  if (universitiesRequest) {
+    return universitiesRequest;
+  }
 
   const request = loadUniversities();
   universitiesRequest = request;
+
   try {
     const rows = await request;
+
     universitiesCache = {
       rows,
       expiresAt: Date.now() + UNIVERSITIES_CACHE_TTL_MS,
     };
+
     return rows;
   } finally {
-    if (universitiesRequest === request) universitiesRequest = null;
+    if (universitiesRequest === request) {
+      universitiesRequest = null;
+    }
   }
 }
 
-async function loadUniversities(): Promise<UniversityRecord[]> {
+async function loadUniversities(): Promise<
+  UniversityRecord[]
+> {
   if (!UNIVERSITIES_API_URL) {
-    throw new Error("The universities API URL is not configured.");
+    throw new Error(
+      "The universities API URL is not configured."
+    );
   }
 
-  const response = await adminApiFetch(UNIVERSITIES_API_URL, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  const response = await adminApiFetch(
+    UNIVERSITIES_API_URL,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    }
+  );
 
   const payload = await readPayload(response);
 
@@ -130,20 +224,17 @@ async function loadUniversities(): Promise<UniversityRecord[]> {
     );
   }
 
-  const body = asRecord(payload);
-  const data = asRecord(body.data);
+  const rows = extractUniversityRows(payload);
 
-  const rows = Array.isArray(payload)
-    ? payload
-    : body.universities ??
-      data.universities ??
-      body.data ??
-      body.items ??
-      body.results;
+  if (!rows) {
+    if (typeof payload === "string") {
+      throw new Error(
+        "The Schools API returned non-JSON content. Check the API URL and Vercel environment variables."
+      );
+    }
 
-  if (!Array.isArray(rows)) {
     throw new Error(
-      "The universities API response did not contain a universities array."
+      "The Schools API returned JSON, but no supported universities or schools array was found."
     );
   }
 
@@ -156,21 +247,26 @@ export async function createUniversity(
   customColor: string
 ): Promise<void> {
   if (!UNIVERSITIES_API_URL) {
-    throw new Error("The universities API URL is not configured.");
+    throw new Error(
+      "The universities API URL is not configured."
+    );
   }
 
-  const response = await adminApiFetch(UNIVERSITIES_API_URL, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: name.trim(),
-      profile_name: profileName.trim(),
-      custom_color: customColor.trim(),
-    }),
-  });
+  const response = await adminApiFetch(
+    UNIVERSITIES_API_URL,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        profile_name: profileName.trim(),
+        custom_color: customColor.trim(),
+      }),
+    }
+  );
 
   const payload = await readPayload(response);
 
@@ -181,5 +277,6 @@ export async function createUniversity(
     );
   }
 
+  // Clear the cached list after a successful creation.
   universitiesCache = null;
 }
