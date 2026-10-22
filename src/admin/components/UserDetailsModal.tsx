@@ -14,6 +14,7 @@ import {
   type PosterProgress,
 } from "../services/posterService";
 import { getInvoices } from "../services/invoicesService";
+import { updatePostingStatus } from "../services/postingStatus service";
 
 
 export default function UserDetailsModal({ user, onClose }: { user: SavedUser | null; onClose: () => void }) {
@@ -29,10 +30,32 @@ export default function UserDetailsModal({ user, onClose }: { user: SavedUser | 
   const posterUrlRef = useRef<string | null>(null);
   const posterGenerationRef = useRef(0);
   const [invoiceNumber, setInvoiceNumber] = useState(
-  user?.invoiceNumber ?? "",
-);
+  user?.invoiceNumber ?? "",);
 const [invoiceLoading, setInvoiceLoading] = useState(false);
 const [invoiceError, setInvoiceError] = useState("");
+const [isPosted, setIsPosted] = useState(false);
+const [postingStatusLoading, setPostingStatusLoading] = useState(false);
+const [postingStatusError, setPostingStatusError] = useState("");
+
+const handlePostingStatusChange = async () => {
+  if (postingStatusLoading || !user) return;
+
+  setPostingStatusLoading(true);
+  setPostingStatusError("");
+
+  try {
+    const result = await updatePostingStatus(user.id, !isPosted);
+    setIsPosted(result.is_posted);
+  } catch (error) {
+    setPostingStatusError(
+      error instanceof Error
+        ? error.message
+        : "Failed to update posting status.",
+    );
+  } finally {
+    setPostingStatusLoading(false);
+  }
+};
  
 
 useEffect(() => {
@@ -154,7 +177,7 @@ useEffect(() => {
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
-      setError("Unable to download this image. Check the image URL and CORS settings.");
+      setError("Unable to download this image.");
     }
   };
 
@@ -184,7 +207,7 @@ useEffect(() => {
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
-      setError("Could not download every image. Check that image URLs are accessible and allow CORS.");
+      setError("Could not download every image.");
     } finally {
       setDownloading(false);
     }
@@ -283,6 +306,41 @@ useEffect(() => {
             </section>
           </div>
           <div>
+             <section className="mt-5 rounded-lg border border-blue-100 bg-white p-4">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h3 className="text-sm font-bold text-myinder-navy">
+        Posting Status
+      </h3>
+      <p className="mt-1 text-xs text-myinder-muted">
+        Update whether this user's post has been published.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={handlePostingStatusChange}
+      disabled={postingStatusLoading}
+      className={`rounded-lg px-4 py-2 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 ${
+        isPosted
+          ? "bg-green-100 text-green-700 hover:bg-green-200"
+          : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+      }`}
+    >
+      {postingStatusLoading
+        ? "Updating..."
+        : isPosted
+          ? "Posted"
+          : "Pending"}
+    </button>
+  </div>
+
+  {postingStatusError && (
+    <p role="alert" className="mt-3 text-sm text-red-600">
+      {postingStatusError}
+    </p>
+  )}
+</section>
   <InvoicePanel invoiceNumber={invoiceNumber} />
 
   {invoiceLoading && (
@@ -507,7 +565,12 @@ useEffect(() => {
                 <Download size={18} /> Download image
               </button>
             </div>
+           
+
+
           </section>
+          
+
         </div>
       )}
     </div>
