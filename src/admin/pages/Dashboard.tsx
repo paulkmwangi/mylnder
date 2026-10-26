@@ -410,7 +410,7 @@ export default function Dashboard() {
 
       <header className="dashboard-reveal flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-myinder-muted">Admin dashboard</p>
+          
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-myinder-navy sm:text-3xl">
             Welcome back, {admin?.name?.split(" ")[0] || "Admin"}! <span aria-hidden="true">👋</span>
           </h1>

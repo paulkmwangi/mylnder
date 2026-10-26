@@ -50,7 +50,7 @@ export default function DashboardSummaryCards({
     : revenuePeriod === "month" ? "this month" : "this year";
 
   return (
-    <section aria-label="Dashboard summary" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 sm:gap-4">
+    <section aria-label="Dashboard summary" className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
       <DashboardMetricCard
         title="Total users"
         value={userCount.toLocaleString()}
@@ -108,23 +108,23 @@ function LinkPaymentOverview({
   return (
     <Link
       to="/admin/invoices"
-      className="dashboard-reveal dashboard-stat-blink dashboard-stat-blink-green group min-h-32 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-myinder-blue sm:min-h-36 sm:p-5"
+      className="dashboard-reveal dashboard-stat-blink dashboard-stat-blink-green group min-h-0 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3 shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-myinder-blue sm:min-h-36 sm:rounded-2xl sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-myinder-navy">Payments overview</p>
-          <p className="mt-1 text-[11px] text-myinder-muted">{error ? "Payment data unavailable" : "Successful and pending payments"}</p>
+          <p className="text-xs font-semibold leading-tight text-myinder-navy sm:text-sm">Payments overview</p>
+          <p className="mt-1 text-[10px] leading-tight text-myinder-muted sm:text-[11px]">{error ? "Payment data unavailable" : "Successful and pending payments"}</p>
         </div>
-        <ColorfulIcon Icon={Wallet} tone="green" size={22} className="h-11 w-11 shrink-0 rounded-2xl" />
+        <ColorfulIcon Icon={Wallet} tone="green" size={19} className="h-9 w-9 shrink-0 rounded-xl sm:h-11 sm:w-11 sm:rounded-2xl" />
       </div>
-      <div className="mt-3 flex items-end gap-5">
+      <div className="mt-2 flex items-end gap-4 sm:mt-3 sm:gap-5">
         <div>
-          <p className="text-[11px] text-myinder-muted">Successful</p>
-          <p className="text-2xl font-extrabold tabular-nums text-myinder-navy">{loading ? "…" : successfulPayments.toLocaleString()}</p>
+          <p className="text-[10px] leading-tight text-myinder-muted sm:text-[11px]">Successful</p>
+          <p className="text-xl font-extrabold leading-tight tabular-nums text-myinder-navy sm:text-2xl">{loading ? "…" : successfulPayments.toLocaleString()}</p>
         </div>
         <div className="pb-0.5">
-          <p className="text-[11px] text-myinder-muted">Pending</p>
-          <p className="text-lg font-bold tabular-nums text-myinder-navy">{loading ? "…" : pendingPayments.toLocaleString()}</p>
+          <p className="text-[10px] leading-tight text-myinder-muted sm:text-[11px]">Pending</p>
+          <p className="text-base font-bold leading-tight tabular-nums text-myinder-navy sm:text-lg">{loading ? "…" : pendingPayments.toLocaleString()}</p>
         </div>
       </div>
       <MiniAnalytics values={trend} label="Invoice totals by payment status" tone="green" />

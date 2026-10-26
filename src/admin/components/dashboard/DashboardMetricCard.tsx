@@ -48,7 +48,7 @@ export function MiniAnalytics({
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={label}
-      className="mt-2 h-6 w-full max-w-40 overflow-visible"
+      className="mt-1 h-4 w-full max-w-32 overflow-visible sm:mt-2 sm:h-6 sm:max-w-40"
       preserveAspectRatio="none"
     >
       <polyline
@@ -89,17 +89,19 @@ export default function DashboardMetricCard({
   return (
     <Link
       to={to}
-      className={`dashboard-reveal dashboard-stat-blink ${cardTones[tone]} group flex min-h-32 min-w-0 items-center justify-between gap-3 rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-myinder-blue sm:min-h-36 sm:p-5 ${cardColors[tone]}`}
+      className={`dashboard-reveal dashboard-stat-blink ${cardTones[tone]} group flex min-h-0 min-w-0 items-center justify-between gap-2 rounded-xl border p-3 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-myinder-blue sm:min-h-36 sm:gap-3 sm:rounded-2xl sm:p-5 ${cardColors[tone]}`}
     >
-      <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div>
-          <p className="text-xs font-semibold text-myinder-muted sm:text-sm">{title}</p>
-          <p className="mt-2 break-words text-2xl font-extrabold leading-tight tabular-nums text-myinder-navy sm:text-3xl">{value}</p>
-          <p className="mt-2 text-[11px] text-myinder-muted sm:text-xs">{detail}</p>
+          <p className="text-[11px] font-semibold leading-tight text-myinder-muted sm:text-sm">{title}</p>
+          <p className="mt-1 break-words text-xl font-extrabold leading-tight tabular-nums text-myinder-navy sm:mt-2 sm:text-3xl">{value}</p>
+          <p className="mt-1 text-[10px] leading-tight text-myinder-muted sm:mt-2 sm:text-xs">{detail}</p>
         </div>
-        <MiniAnalytics values={trend} label={trendLabel} tone={tone} />
+        <div className="flex min-h-0 items-end justify-end">
+          <MiniAnalytics values={trend} label={trendLabel} tone={tone} />
+        </div>
       </div>
-      <ColorfulIcon Icon={Icon} tone={tone} size={23} className="h-11 w-11 shrink-0 self-start rounded-2xl sm:h-14 sm:w-14" />
+      <ColorfulIcon Icon={Icon} tone={tone} size={19} className="h-9 w-9 shrink-0 self-start rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl" />
     </Link>
   );
 }
