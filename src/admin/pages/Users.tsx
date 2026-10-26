@@ -89,6 +89,16 @@ export default function Users() {
   const unpaidCount = paymentStatuses
     ? matchingUsers.length - paidCount
     : 0;
+  const paymentFilterOptions = [
+    ["all", "All users"],
+    ["paid", `Successful (${paidCount})`],
+    ["unpaid", `Unpaid (${unpaidCount})`],
+  ] as const;
+  const postingFilterOptions = [
+    ["waiting", `Waiting to post (${matchingUsers.filter((user) => !user.isPosted).length})`],
+    ["posted", `Successfully posted (${matchingUsers.filter((user) => user.isPosted).length})`],
+    ["all", "All posting statuses"],
+  ] as const;
   const filtered = matchingUsers.filter((user) => {
     const matchesPayment =
       !superAdmin ||
@@ -124,14 +134,23 @@ export default function Users() {
 
         <section className="mb-5 flex flex-wrap gap-x-8 gap-y-4 rounded-xl border border-blue-100 bg-white p-4">
           {superAdmin && (
-            <div>
+            <div className="min-w-0 flex-1 basis-full sm:basis-auto">
               <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-myinder-muted">Payment</h2>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  ["all", "All users"],
-                  ["paid", `Successful (${paidCount})`],
-                  ["unpaid", `Unpaid (${unpaidCount})`],
-                ] as const).map(([value, label]) => (
+              <label className="sr-only" htmlFor="user-payment-filter">Filter users by payment</label>
+              <select
+                id="user-payment-filter"
+                value={paymentFilter}
+                onChange={(event) => setPaymentFilter(event.target.value as PaymentFilter)}
+                className="w-full rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-base font-semibold text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:cursor-wait disabled:opacity-50 sm:hidden"
+              >
+                {paymentFilterOptions.map(([value, label]) => (
+                  <option key={value} value={value} disabled={value !== "all" && !paymentStatuses}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <div className="hidden flex-wrap gap-2 sm:flex">
+                {paymentFilterOptions.map(([value, label]) => (
                   <button
                     key={value}
                     type="button"
@@ -150,14 +169,21 @@ export default function Users() {
               </div>
             </div>
           )}
-          <div>
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-myinder-muted">Posting</h2>
-            <div className="flex flex-wrap gap-2">
-              {([
-                ["waiting", `Waiting to post (${matchingUsers.filter((user) => !user.isPosted).length})`],
-                ["posted", `Successfully posted (${matchingUsers.filter((user) => user.isPosted).length})`],
-                ["all", "All posting statuses"],
-              ] as const).map(([value, label]) => (
+            <label className="sr-only" htmlFor="user-posting-filter">Filter users by posting status</label>
+            <select
+              id="user-posting-filter"
+              value={postingFilter}
+              onChange={(event) => setPostingFilter(event.target.value as PostingFilter)}
+              className="w-full rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-base font-semibold text-myinder-navy outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 sm:hidden"
+            >
+              {postingFilterOptions.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <div className="hidden flex-wrap gap-2 sm:flex">
+              {postingFilterOptions.map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
