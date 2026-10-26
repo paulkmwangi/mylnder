@@ -1,0 +1,5 @@
+import type { SavedUser } from "../types/admin.types";
+
+export default function DataTable({ users }: { users: SavedUser[] }) {
+  return <div className="overflow-x-auto rounded-xl border border-blue-100 bg-white"><table className="w-full text-left text-sm"><thead className="bg-blue-50/70 text-xs uppercase tracking-wide text-myinder-muted"><tr><th className="px-5 py-4">Name</th><th className="px-5 py-4">University</th><th className="px-5 py-4">Major</th><th className="px-5 py-4">Images</th></tr></thead><tbody>{users.map((user) => <tr key={user.id} className="border-t border-blue-50"><td className="px-5 py-4 font-semibold text-myinder-navy">{user.name}</td><td className="px-5 py-4 text-slate-500">{user.university}</td><td className="px-5 py-4 text-slate-500">{user.major}</td><td className="px-5 py-4 text-slate-500">{user.images.length}</td></tr>)}</tbody></table></div>;
+}

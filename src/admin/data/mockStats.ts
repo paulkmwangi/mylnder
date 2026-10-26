@@ -1,0 +1,1 @@
+export const mockStats = { activeUsers: 24, universities: 24, reports: 2 };

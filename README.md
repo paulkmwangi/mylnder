@@ -1,0 +1,69 @@
+# mylnder Admin Dashboard
+
+Responsive React + TypeScript + Tailwind CSS admin dashboard.
+
+## Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Create a production build with `npm run build`.
+
+## Live users API
+
+The Saved Users page fetches real records from the admin API. For local development, configure `.env` to use the Vite proxy:
+
+```env
+VITE_ADMIN_API_ORIGIN=https://your-api-host.example
+VITE_ADMIN_USERS_API_URL=/api/admin/users
+```
+
+The Vite development server proxies `/api` requests to `VITE_ADMIN_API_ORIGIN`, avoiding browser CORS restrictions while developing. If you change `.env`, restart the Vite development server. In production, set `VITE_ADMIN_USERS_API_URL` to the full API URL and `VITE_ADMIN_API_ORIGIN` to its origin; the development proxy is not included in production builds. Configure the backend to allow the deployed dashboard's origin for API and image-download requests. The endpoint must return JSON containing an array of users, either directly or under `users`, `data`, `items`, or `results`.
+
+The API mapper supports common fields including `user_id`/`id`, `name`, `ig_username`, `major`, university/school fields, `bio`, song selections (`song`, `song_option`, or `song_choice`), and photo arrays (`photos`, `images`, `user_photos`, or `photo_urls`). Bio and song are shown in the user details view, included in search and CSV exports, and may be omitted by the API. Photo entries may be URL strings or objects containing `url`, `photo_url`, `image_url`, `src`, `path`, or `filename`. Saved photo paths under `/api/images/:filename` are fetched only when a photo is visible or downloaded; that endpoint must return JSON with an `imageUrl` field containing the signed storage URL used by the gallery and download actions. Simultaneous user-list reads are deduplicated while in flight.
+
+## Backend requirements
+
+- The endpoint must be reachable from the browser and allow CORS requests from your frontend origin (for example `http://localhost:5173` or your deployed dashboard domain).
+- The `VITE_` variables are public configuration and are included in the browser bundle. The admin endpoint should be protected by your backend's admin authentication. Do not put API keys, server secrets, or database credentials in this frontend `.env`; keep secrets on the backend.
+- Relative photo paths are resolved against the API host. Bare photo filenames are resolved through `GET /api/images/:filename`, which must return JSON with an `imageUrl` signed storage URL.
+- If the API's response field names differ, update `src/admin/services/usersService.ts` in `mapUser()`.
+- User records are cached in browser `localStorage` for five minutes; invoice lookups are cached for two minutes. This reduces repeat API requests, but cached admin profile and invoice data remains in that browser until the entries expire or site storage is cleared. Do not use this dashboard on a shared or untrusted browser.
+
+## Admin authentication and accounts
+
+The Admins page lists accounts with `GET /api/admin`, edits name/email with `PATCH /api/admin/:id`, and deletes accounts with `DELETE /api/admin/:id`. These endpoints must be available on the backend and return admin records containing `id`, `name`, and `email`; list responses may be a direct array or wrapped in `admins`, `items`, or `results`.
+
+The dashboard signs administrators in with `POST /api/admin/login` and creates accounts with `POST /api/admin`, using the backend's documented JSON fields. Create an account at `/admin/signup` before signing in; additional accounts can also be created from Administration → Admins. Names must contain non-whitespace text and be at most 100 characters; emails are limited to 254 characters; passwords must be 12–128 characters and not all whitespace. The access token is held in Zustand and persisted in `sessionStorage` for the current browser tab; admin API requests include it as a Bearer token. Sign out clears the token and cached user/invoice data. Passwords are not stored or returned to the UI.
+
+Admin creation and login are public for the current development phase, and existing backend routes are not JWT-protected. The frontend route guard only controls dashboard navigation; it is not a security boundary. Before exposing the dashboard, require authentication and authorization on protected backend routes, and restrict admin creation to an authorized administrator.
+
+## Admin profile posters
+
+The user-details modal can generate a 768 × 1024 PNG from any photo in that user's gallery. The photo is kept natural and clear; the university's configured `custom_color` is used for the thin frame and angular neon-style website/Instagram text plates. The bottom Instagram plate shows the fixed account `@mylnderofficial`, with white handle text and the standard Instagram gradient icon. The original 3:4 canvas size and frame placement are preserved; PNG export is lossless and high-quality canvas resampling is used when fitting the source image. A fresh signed image URL is requested for poster generation to avoid using expired links. The generated file is previewed in the browser and downloaded locally; it is not uploaded or saved by the dashboard. If the university color is missing or invalid, the poster warns and falls back to the dashboard's documented Myinder orange. Image downloads require the image server and storage host to allow browser CORS requests.
+
+## User invoices
+
+The user details modal looks up the invoice number included on each user record with `GET /api/admin/invoices/:invoiceNumber`. Invoice number casing is preserved in the request path. Responses may be direct invoice objects or wrapped in `data`/`result`, and may include `amount_minor`, `currency`, `paid_at`, or a nested `payment` object. The lookup result is cached in local storage for two minutes.
+
+The admin Invoices tab loads every page from `GET /api/admin/invoices?page=1&limit=100`, which is the authoritative invoice list and does not depend on invoice references appearing in user records. It matches invoice `user_id` values to user names and `payment_id` values to statuses from `GET /api/admin/payments`, then displays payment/invoice status, amount, and available hosted/PDF links with search and status filtering. The API currently lists persisted paid/refunded invoices; payments whose invoices are still processing are not part of this invoice list. The separate `GET /api/payments/:id` endpoint requires a customer status token and is not used by the administrator invoice list.
+
+## Payment plan
+
+The admin sidebar links to a Payment Plan page. It reads the current price from `GET /api/plan` and publishes a changed amount with `POST /api/plan`, preserving the current plan name, currency, and features. The API creates a new current price version; it does not overwrite previous versions or change prices already attached to purchases. Amounts must be positive and have at most two decimal places.
+
+The backend documentation states that `/api/plan` currently has no authentication guard. The admin UI does not add a client-side credential in place of server authorization; protect plan management on the backend before exposing it publicly.
+
+## Overview analytics
+
+The Overview groups saved users by university and charts new registrations over the selected 7-, 30-, or 90-day period using each user's `created_at` timestamp. User lists are fetched across all API pages so the counts are not limited to the first page. These are registration counts, not active visits or sessions; the current API does not provide time-based service-access analytics.
+
+## Included
+
+- Sidebar navigation and admin footer
+- Saved users grid with search, total count and pagination
+- User details modal with name, university, major, Instagram and uploaded images
+- Individual image downloads and Download All Images ZIP action
+- Loading and API error states
